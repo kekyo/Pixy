@@ -2,9 +2,16 @@
 
 ## Specification
 
-* [ATMEL ATMega128-16AU](https://www.microchip.com/en-us/product/atmega128) (Simplest 48+ GPIO)
+* [ATMEL ATMega128-16AU](https://www.microchip.com/en-us/product/ATmega128A) (Simplest 48+ GPIO)
+  * 16MHz externel XTAL.
+  * 128KB Flash, 4KB SRAM, 4KB EEPROM included.
+* USB 2.0 Type-C
+  * Power distribution fixed +5V (not PD)
+  * USB Serial connection by WCH CH340N (Optional)
 * Enabled Arduino IDE with [MCUdude/MegaCore](https://github.com/MCUdude/MegaCore).
-* PB5, PB6 and PB7 are assigned LEDs. (PB5 LED is MegaCore standard.)
+  * USB easy ready to run downloader.
+  * With auto reset feature.
+* PB5, PB6 and PB7 are assigned LEDs. (PB5 LED is MegaCore Boot indicator standard.)
 * PE0 is TX, PE1 is RX and PB1 is SCK. These pins are set of ATMEL AVR ICE/ISP and UART interfaces.
   * ISP header is compatible for genuine [ATMEL AVR ICE/ISP](https://www.microchip.com/en-us/development-tool/atatmel-ice).
   * You have to use ATMEL AVR ICE/ISP on first time Arduino (MegaCore) firmware download.
@@ -12,7 +19,11 @@
 
 ## PCB (Pixy-mega128-0)
 
-![PCB](../Images/Pixy-mega128-0-0.png)
+![PCB](../Images/Pixy-mega128-0-pcb.png)
+
+## Pinout (Pixy-mega128-0)
+
+![Pinout](../Images/Pixy-mega128-0-pinout.png)
 
 ## Sample code
 
@@ -89,13 +100,6 @@ static const byte digitPatterns[16] = {
 };
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println("setup()");
-  
-  pinMode(PIN_PB5, OUTPUT);
-  pinMode(PIN_PB6, OUTPUT);
-  pinMode(PIN_PB7, OUTPUT);
-
   pinMode(DIO, OUTPUT);
   pinMode(SCLK, OUTPUT);
   pinMode(RCLK, OUTPUT);
@@ -135,18 +139,12 @@ static void output4Segments(uint16_t value, bool isHigh) {
 static uint32_t value = 0;
 
 void loop() {
-  //Serial.println("Value: " + String((unsigned int)value));
-
   output4Segments((value >> 16) & 0xffffffff, true);
   output4Segments(value & 0xffffffff, false);
 
   outputBits(0);
   outputBits(0);
   flush();
-
-  //digitalWrite(PIN_PB5, (value & 0x01) ? HIGH : LOW);
-  //digitalWrite(PIN_PB6, (value & 0x02) ? HIGH : LOW);
-  //digitalWrite(PIN_PB7, (value & 0x04) ? HIGH : LOW);
 
   value++;
 }
