@@ -6,10 +6,10 @@ My own SBC projects.
 
 ## Pixy-mega128
 
-[Project (KiCad)](Pixy-mega128/README.md)
+[Project readme](Pixy-mega128/README.md)
 
-* [ATMEL ATMega128-16AU](https://www.microchip.com/en-us/product/atmega128) (Simplest 48+ GPIO)
-* Enabled Arduino IDE with [MCUdude/MegaCore](https://github.com/MCUdude/MegaCore).
+* ATMEL ATMega128-16AU (Simplest 48+ GPIO)
+* Enabled Arduino IDE with MegaCore.
 
 Assembled (Pixy-mega128-0):
 
