@@ -61,34 +61,19 @@ static void set_DQ_mode(bool isOutput) {
   }
 }
 
-static void output_pulse(
-  int pin, int periodMicroseconds, int count) {
-  unsigned long next = micros() + periodMicroseconds;
-  unsigned long current;
+#define CLK_WIDTH   1   // 1us up --> 1us down --> ...
+
+static void output_CLK_pulse(int count) {
   while (count > 0) {
-    digitalWrite(pin, HIGH);
-    while (true) {
-      current = micros();
-      if (current >= next) {
-        break;
-      }
-    }
-    next += periodMicroseconds;
-
-    digitalWrite(pin, LOW);
-    while (true) {
-      current = micros();
-      if (current >= next) {
-        break;
-      }
-    }
-    next += periodMicroseconds;
-
+    PORTC = (PORTC & 0x7f) | 0x80;
+    delayMicroseconds(CLK_WIDTH);
+    PORTC = PORTC & 0x7f;
+    delayMicroseconds(CLK_WIDTH);
     count--;
   }
 }
 
-static void output_Address(uint16_t address) {
+static void output_address(uint16_t address) {
   PORTD = (uint8_t)address;
   PORTC = (PORTC & 0xc0) | ((address >> 8) & 0x3f);
 }
@@ -96,13 +81,24 @@ static void output_Address(uint16_t address) {
 static void output_DQ(uint16_t data) {
   PORTA = (uint8_t)data;
   PORTF = (uint8_t)(data >> 8);
-  set_DQ_mode(true);
 }
 
 static uint16_t input_DQ() {
-  set_DQ_mode(false);
-  delayMicroseconds(1);
   return PINA | (((uint16_t)PINF) << 8);
+}
+
+#define WE 0x01
+#define CAS 0x02
+#define RAS 0x04
+#define CS 0x08
+#define LDQM 0x10
+#define UDQM 0x20
+#define CKE 0x40
+
+void set_signals(uint8_t sigs) {
+  PORTC = (PORTC & 0xbf) | (sigs & 0x40);          // CKE
+  PORTB = (PORTB & 0x0f) | (sigs << 4);            // WE, CAS, RAS, CS
+  PORTE = (PORTE & 0x3f) | ((sigs & 0x30) << 2);   // LDQM, UQDM
 }
 
 ////////////////////////////////////////////////////////////
@@ -141,51 +137,25 @@ void setup() {
   ///////////////////////////////
 
   // PALL:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, LOW);
-  digitalWrite(SDRAM_RAS, LOW);
-  digitalWrite(SDRAM_CAS, HIGH);
-  digitalWrite(SDRAM_WE, LOW);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  digitalWrite(SDRAM_BA0, LOW);
-  digitalWrite(SDRAM_BA1, LOW);
-  output_Address(0x400);   // A10=HIGH
-  output_pulse(SDRAM_CLK, 10, 10);   // REAL specific average refresh rate: 15.6us
-  digitalWrite(SDRAM_A10, LOW);
+  set_signals(CKE | CAS | LDQM | UDQM);
+  output_address(0x400);   // A10=HIGH
+  output_CLK_pulse(10);   // REAL specific average refresh rate: 15.6us
+  output_address(0x000);
 
   // REF:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, LOW);
-  digitalWrite(SDRAM_RAS, LOW);
-  digitalWrite(SDRAM_CAS, LOW);
-  digitalWrite(SDRAM_WE, HIGH);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  output_Address(0x000);
-  output_pulse(SDRAM_CLK, 10, 30);    // Specific count >=8
+  set_signals(CKE | WE | LDQM | UDQM);
+  output_address(0x000);
+  output_CLK_pulse(30);    // Specific count >=8
 
   // MRS:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, LOW);
-  digitalWrite(SDRAM_RAS, LOW);
-  digitalWrite(SDRAM_CAS, LOW);
-  digitalWrite(SDRAM_WE, LOW);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  output_Address(0x220);    // MRS: BL=1word, BT=seq, LMODE=2cycle, OPCODE=BRSW
-  output_pulse(SDRAM_CLK, 10, 1);
+  set_signals(CKE | LDQM | UDQM);
+  output_address(0x220);    // MRS: BL=1word, BT=seq, LMODE=2cycle, OPCODE=BRSW
+  output_CLK_pulse(1);
   
   // IDLE:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, HIGH);
-  digitalWrite(SDRAM_RAS, HIGH);
-  digitalWrite(SDRAM_CAS, HIGH);
-  digitalWrite(SDRAM_WE, HIGH);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  output_Address(0x000);
-  output_pulse(SDRAM_CLK, 10, 1);
+  set_signals(CKE | CS | RAS | CAS | WE | LDQM | UDQM);
+  output_address(0x000);
+  output_CLK_pulse(1);
 }
 
 ////////////////////////////////////////////////////////////
@@ -194,106 +164,68 @@ uint16_t index = 0;
 
 void loop() {
   // RAS:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, LOW);
-  digitalWrite(SDRAM_RAS, LOW);
-  digitalWrite(SDRAM_CAS, HIGH);
-  digitalWrite(SDRAM_WE, HIGH);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  output_Address(0x000);
-  output_pulse(SDRAM_CLK, 10, 2);
+  set_signals(CKE | CAS | WE | LDQM | UDQM);
+  output_address(0x000);
+  output_CLK_pulse(2);   // 2
 
   // WRITE CAS:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, LOW);
-  digitalWrite(SDRAM_RAS, HIGH);
-  digitalWrite(SDRAM_CAS, LOW);
-  digitalWrite(SDRAM_WE, LOW);
-  digitalWrite(SDRAM_LDQM, LOW);
-  digitalWrite(SDRAM_UDQM, LOW);
-  output_Address(0x000);
-  output_DQ(index++);
-  output_pulse(SDRAM_CLK, 10, 2);
-
+  set_signals(CKE | RAS);
+  output_address(0x000);
+  output_DQ(index);
+  set_DQ_mode(true);
+  output_CLK_pulse(2);   // 2
   set_DQ_mode(false);
 
   ///////////////////////////////////////
 
   // IDLE:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, HIGH);
-  digitalWrite(SDRAM_RAS, HIGH);
-  digitalWrite(SDRAM_CAS, HIGH);
-  digitalWrite(SDRAM_WE, HIGH);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  output_Address(0x000);
-  output_pulse(SDRAM_CLK, 10, 1);
+  set_signals(CKE | CS | RAS | CAS | WE | LDQM | UDQM);
+  output_address(0x000);
+  output_CLK_pulse(1);
 
   // REF:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, LOW);
-  digitalWrite(SDRAM_RAS, LOW);
-  digitalWrite(SDRAM_CAS, LOW);
-  digitalWrite(SDRAM_WE, HIGH);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  output_Address(0x000);
-  //output_pulse(SDRAM_CLK, 10, 8192);
-  output_pulse(SDRAM_CLK, 10, 100);
+  set_signals(CKE | WE | LDQM | UDQM);
+  output_address(0x000);
+  //output_CLK_pulse(10, 8192);
+  output_CLK_pulse(0x100);
 
   ///////////////////////////////////////
 
   // RAS:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, LOW);
-  digitalWrite(SDRAM_RAS, LOW);
-  digitalWrite(SDRAM_CAS, HIGH);
-  digitalWrite(SDRAM_WE, HIGH);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  output_Address(0x000);
-  output_pulse(SDRAM_CLK, 10, 2);
+  set_signals(CKE | CAS | WE | LDQM | UDQM);
+  output_address(0x000);
+  output_CLK_pulse(2);   // 2
 
   // READ CAS:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, LOW);
-  digitalWrite(SDRAM_RAS, HIGH);
-  digitalWrite(SDRAM_CAS, LOW);
-  digitalWrite(SDRAM_WE, HIGH);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  output_Address(0x000);
-  output_pulse(SDRAM_CLK, 10, 2);
+  set_signals(CKE | RAS | WE | LDQM | UDQM);
+  output_address(0x000);
+  output_CLK_pulse(2);   // 2  (CL=2)
 
   // READ [1]:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, LOW);
-  digitalWrite(SDRAM_RAS, HIGH);
-  digitalWrite(SDRAM_CAS, LOW);
-  digitalWrite(SDRAM_WE, HIGH);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  output_Address(0x000);
-
-  digitalWrite(SDRAM_CLK, HIGH);
-  uint16_t r = input_DQ();
+  digitalWrite(SDRAM_CLK, HIGH);    // 1
+  delayMicroseconds(1);
+  auto read = input_DQ();
   digitalWrite(SDRAM_CLK, LOW);
-
-  Serial.print("r=");
-  Serial.println(r, HEX);
 
   ///////////////////////////////////////
 
   // IDLE:
-  digitalWrite(SDRAM_CKE, HIGH);
-  digitalWrite(SDRAM_CS, HIGH);
-  digitalWrite(SDRAM_RAS, HIGH);
-  digitalWrite(SDRAM_CAS, HIGH);
-  digitalWrite(SDRAM_WE, HIGH);
-  digitalWrite(SDRAM_LDQM, HIGH);
-  digitalWrite(SDRAM_UDQM, HIGH);
-  output_Address(0x000);
-  output_pulse(SDRAM_CLK, 10, 1);
+  set_signals(CKE | CS | RAS | CAS | WE | LDQM | UDQM);
+  output_address(0x000);
+  output_CLK_pulse(1);
+
+  ///////////////////////////////////////
+
+  if (index != read) {
+    Serial.print("ERROR: index=");
+    Serial.print(index, HEX);
+    Serial.print(", read=");
+    Serial.println(read, HEX);
+  }
+
+  if ((index & 0x0fff) == 0x0fff) {
+    Serial.print("PASS: index=");
+    Serial.println(index + 1, HEX);
+  }
+  index++;
 }
