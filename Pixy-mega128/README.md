@@ -19,17 +19,19 @@
 
 ## PCB (Pixy-mega128-0)
 
-![PCB](../Images/Pixy-mega128-0-pcb.png)
+![PCB](Images/Pixy-mega128-0-pcb.png)
 
 ## Pinout (Pixy-mega128-0)
 
-![Pinout](../Images/Pixy-mega128-0-pinout.png)
+![Pinout](Images/Pixy-mega128-0-pinout.png)
 
 ## Sample code
 
 ### Blinker
 
 Blinker for Onboard LEDs (PB5, PB6 and PB7)
+
+[Blinker](Blinker/): PlatformIO project.
 
 ```c
 #include <Arduino.h>
@@ -150,4 +152,4 @@ void loop() {
 }
 ```
 
-![Pixy-mega128-0 7segment 8digits LED](../Images/Pixy-mega128-0-2.jpg)
+![Pixy-mega128-0 7segment 8digits LED](Images/Pixy-mega128-0-2.jpg)

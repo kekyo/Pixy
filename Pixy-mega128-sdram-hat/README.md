@@ -10,13 +10,13 @@
 
 ## PCB (Hat on Pixy-mega128-0)
 
-![PCB](../Images/Pixy-mega128-sdram-hat-0-pcb.png)
+![PCB](Images/Pixy-mega128-sdram-hat-0-pcb.png)
 
 ## Note
 
 * Errata: The header is slightly misaligned in version 0. You must force this board to be inserted onto `Pixy-mega128-0`.
 * You have to connect both VCC and GND before connect USB. See the picture.
-  ![Pixy-mega128-sdram-hat-0-power](../Images/Pixy-mega128-sdram-hat-0-power.jpg)
+  ![Pixy-mega128-sdram-hat-0-power](Images/Pixy-mega128-sdram-hat-0-power.jpg)
 
 ## Sample code
 

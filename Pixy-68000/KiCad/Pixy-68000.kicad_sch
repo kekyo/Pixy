@@ -4,6 +4,14 @@
 
   (paper "A2")
 
+  (title_block
+    (title "Pixy-68000-0")
+    (date "2023-11-25")
+    (rev "0")
+    (company "(c) Kouji Matsui")
+    (comment 1 "https://github.com/kekyo/Pixy")
+  )
+
   (lib_symbols
     (symbol "C_1" (pin_numbers hide) (pin_names (offset 0.254)) (in_bom yes) (on_board yes)
       (property "Reference" "C" (at 0.635 2.54 0)

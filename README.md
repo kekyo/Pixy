@@ -13,7 +13,7 @@ My own SBC projects.
 
 Assembled (Pixy-mega128-0):
 
-![Pixy-mega128-0](Images/Pixy-mega128-0-1.jpg)
+![Pixy-mega128-0](Pixy-mega128/Images/Pixy-mega128-0-1.jpg)
 
 ## Pixy-mega128-sdram-hat
 
@@ -24,7 +24,7 @@ Assembled (Pixy-mega128-0):
 
 Assembled (Pixy-mega128-sdram-hat-0):
 
-![Pixy-mega128-sdram-hat-0](Images/Pixy-mega128-sdram-hat-0-power.jpg)
+![Pixy-mega128-sdram-hat-0](Pixy-mega128-sdram-hat/Images/Pixy-mega128-sdram-hat-0-power.jpg)
 
 ## License
 
