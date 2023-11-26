@@ -9,9 +9,9 @@ module Main(
 	output RUN
 );
 
-ClockDivider Clock(
-	.MCLK(MCLK),
-	.CPUCLK(CPUCLK));
+ClockDivider CD(
+	.CLK_IN(MCLK),
+	.CLK_OUT(CPUCLK));
 	
 Core C(
 	.STEPEN(STEPEN),

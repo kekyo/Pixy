@@ -1,6 +1,7 @@
 # https://electronics.stackexchange.com/questions/170563/lattice-diamond-gitignore
 
 *.html
+*.htm
 impl*/
 *.xml
 .build_status
@@ -53,5 +54,6 @@ impl*/
 *.p3t
 *.t2b
 *.arearep
+*.tpf.*
 xxx_lse_cp_file_list
 xxx_lse_sign_file

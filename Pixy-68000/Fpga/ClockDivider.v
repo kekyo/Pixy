@@ -1,15 +1,19 @@
 module ClockDivider(
-    input MCLK,
-    output CPUCLK);
+    input CLK_IN,
+    output CLK_OUT);
 
-wire MCLK;
-wire CPUCLK;
-reg [7:0] COUNT;
+reg LAST;
+reg [8:0] COUNT;
 
-always @ (posedge MCLK) begin
-    COUNT <= COUNT + 1;
+always @ (posedge CLK_IN) begin
+    if (COUNT == 'd399) begin   // 20us/50kHz
+        LAST <= ~LAST;
+        COUNT <= 0;
+    end else begin
+        COUNT <= COUNT + 9'd1;
+    end
 end
 
-assign CPUCLK = COUNT[7];
+assign CLK_OUT = LAST;
 
 endmodule
