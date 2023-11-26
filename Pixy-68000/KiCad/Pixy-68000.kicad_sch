@@ -7775,10 +7775,6 @@
     (stroke (width 0) (type default))
     (uuid 12f20420-4171-4108-8add-7510514b88a4)
   )
-  (wire (pts (xy 110.49 302.26) (xy 110.49 337.82))
-    (stroke (width 0) (type default))
-    (uuid 1350e1ed-f5ba-4019-98b4-16fe41e37d1e)
-  )
   (wire (pts (xy 287.02 55.88) (xy 287.02 149.86))
     (stroke (width 0) (type default))
     (uuid 1385fcd7-bf5c-4e88-b3a5-f16a03c9c982)
@@ -11566,7 +11562,7 @@
     (uuid e49f12c2-1e20-4e68-9f65-0e113ebd7e52)
   )
 
-  (wire (pts (xy 110.49 267.97) (xy 110.49 294.64))
+  (wire (pts (xy 110.49 267.97) (xy 110.49 337.82))
     (stroke (width 0) (type default))
     (uuid e55b056e-4720-4f8d-a03a-487b85be72c2)
   )
@@ -17903,42 +17899,6 @@
       (project "Pixy-68000"
         (path "/9aeb2b9d-08f7-44b5-9289-68c429469433"
           (reference "U4") (unit 1)
-        )
-      )
-    )
-  )
-
-  (symbol (lib_id "kekyo:R") (at 110.49 298.45 180) (unit 1)
-    (in_bom yes) (on_board yes) (dnp no)
-    (uuid f527000b-6263-427b-a6ad-251edbcaffff)
-    (property "Reference" "R7" (at 114.3 304.8 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Value" "1k" (at 114.3 302.26 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Footprint" "kekyo:R_0805_2012" (at 112.268 298.45 90)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "~" (at 110.49 298.45 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (pin "1" (uuid 54f38f80-9597-420a-8ba5-0cdc658f5529))
-    (pin "2" (uuid cc74225d-edce-4788-9722-80b4ed255cb7))
-    (instances
-      (project "Pixy-mega128"
-        (path "/7609de31-cb73-4ace-8f34-65caa63c74e9"
-          (reference "R7") (unit 1)
-        )
-      )
-      (project "MC68SEC000"
-        (path "/7907391b-035a-42ea-89b1-82b781ee98c8"
-          (reference "R20") (unit 1)
-        )
-      )
-      (project "Pixy-68000"
-        (path "/9aeb2b9d-08f7-44b5-9289-68c429469433"
-          (reference "R7") (unit 1)
         )
       )
     )
