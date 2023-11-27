@@ -12,6 +12,9 @@
         <Source name="ClockDivider.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
+        <Source name="BusControl.v" type="Verilog" type_short="Verilog">
+            <Options/>
+        </Source>
         <Source name="Core/Core.xcf" type="Programming Project File" type_short="Programming">
             <Options/>
         </Source>
