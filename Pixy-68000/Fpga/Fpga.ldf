@@ -4,7 +4,7 @@
     <Implementation title="Core" dir="Core" description="Core" synthesis="lse" default_strategy="Strategy1">
         <Options def_top="Main"/>
         <Source name="Core.v" type="Verilog" type_short="Verilog">
-            <Options/>
+            <Options top_module="Core"/>
         </Source>
         <Source name="Main.v" type="Verilog" type_short="Verilog">
             <Options top_module="Main"/>

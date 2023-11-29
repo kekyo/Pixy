@@ -1,27 +1,43 @@
 module Main(
 	input MCLK,
-	input AS,
-	input UDS,
-	input LDS,
-	output SRAMCS0,
-	output SRAMCS1,
-	output PROMCS0,
-	output PROMCS1,
-	output OE,
+	input AS_n,
+	input UDS_n,
+	input LDS_n,
 	output CPUCLK,
 	output RUN,
-	output RESET,
-	output HALT,
-	output IPL0,
-	output IPL1,
-	output IPL2,
-	output AVEC,
-	output BR,
-	output DTACK,
-	output BERR
+	output RESET_n,
+	output HALT_n,
+	output IPL0_n,
+	output IPL1_n,
+	output IPL2_n,
+	output AVEC_n,
+	output BR_n,
+	output DTACK_n,
+	output BERR_n,
+	output SRAMCS0_n,
+	output SRAMCS1_n,
+	output PROMCS0_n,
+	output PROMCS1_n,
+	output OE_n
 );
 
-wire TEMP;
+wire AS = ~AS_n;
+wire LDS = ~LDS_n;
+wire UDS = ~UDS_n;
+wire RESET;
+wire HALT;
+wire DTACK;
+wire BERR;
+wire BR;
+wire IPL0;
+wire IPL1;
+wire IPL2;
+wire AVEC;
+wire SRAMCS0;
+wire SRAMCS1;
+wire PROMCS0;
+wire PROMCS1;
+wire OE;
 
 ClockDivider CD(
 	.CLK_IN(MCLK),
@@ -31,23 +47,34 @@ BusControl BC(
 	.CPUCLK_IN(CPUCLK),
 	.RESET(RESET),
 	.HALT(HALT));
-	
-Core C(
-	.SRAMCS0(SRAMCS0),
-	.SRAMCS1(SRAMCS1),
-	.PROMCS0(PROMCS0),
-	.PROMCS1(PROMCS1));
-	
-assign IPL0 = 'd1;
-assign IPL1 = 'd1;
-assign IPL2 = 'd1;
-assign AVEC = 'd1;
-assign BR = 'd1;
-assign OE = 'd1;
 
-assign DTACK = ~(~AS & (~UDS | ~LDS));
-//assign DTACK = 'd1;
+assign DTACK = AS & (UDS | LDS);
 
-assign BERR = 'd1;
+assign BERR = 0;
+assign BR = 0;
+assign IPL0 = 0;
+assign IPL1 = 0;
+assign IPL2 = 0;
+assign AVEC = 0;
+assign SRAMCS0 = 0;
+assign SRAMCS1 = 0;
+assign PROMCS0 = 0;
+assign PROMCS1 = 0;
+assign OE = 0;
+
+assign RESET_n = ~RESET;
+assign HALT_n = ~HALT;
+assign DTACK_n = ~DTACK;
+assign BERR_n = ~BERR;
+assign BR_n = ~BR;
+assign IPL0_n = ~IPL0;
+assign IPL1_n = ~IPL1;
+assign IPL2_n = ~IPL2;
+assign AVEC_n = ~AVEC;
+assign SRAMCS0_n = ~SRAMCS0;
+assign SRAMCS1_n = ~SRAMCS1;
+assign PROMCS0_n = ~PROMCS0;
+assign PROMCS1_n = ~PROMCS0;
+assign OE_n = ~OE;
 
 endmodule
