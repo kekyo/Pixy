@@ -13,9 +13,17 @@
 
 #define SW0 PIN_PB0
 #define SW1 PIN_PB1
-#define SW2 PIN_PB2
+#define SW2 PIN_PB7
 #define SW3 PIN_PD6
 #define SW4 PIN_PD7
+
+#define SPISS PIN_PB2
+#define SPISI PIN_PB3
+#define SPISO PIN_PB4
+#define SPICLK PIN_PB5
+
+#define REQINT PIN_PD2
+#define PROGRAMN PIN_PD3
 
 static const byte digitPatterns[16] = {
   B11000000,  // 0
@@ -38,15 +46,14 @@ static const byte digitPatterns[16] = {
 
 ///////////////////////////////////////////////////////////
 
-static const SPISettings spiSettings(1000000, MSBFIRST, SPI_MODE0);
-
-static void outputBits(byte value) {
+static void outputBits(byte row0, byte row1) {
   for (int j = 0; j < 8; j++) {
-    digitalWrite(DIO0, (value & 0x80) ? HIGH : LOW);
-    digitalWrite(DIO1, (value & 0x80) ? HIGH : LOW);
+    digitalWrite(DIO0, (row0 & 0x80) ? HIGH : LOW);
+    digitalWrite(DIO1, (row1 & 0x80) ? HIGH : LOW);
     digitalWrite(SCLK, LOW);
     digitalWrite(SCLK, HIGH);
-    value <<= 1;
+    row0 <<= 1;
+    row1 <<= 1;
   }
 }
 
@@ -55,18 +62,25 @@ static void flush() {
     digitalWrite(RCLK, HIGH);
 }
 
-static void output4Segments(uint16_t value, bool isHigh) {
+static void output4Segments(uint16_t row0, uint16_t row1, bool isHigh) {
   byte column = isHigh ? 0x80 : 0x08;
   for (int i = 0; i < 4; i++) {
     // Makes value bits
-    byte v0 = digitPatterns[value & 0x0f];
-    outputBits(v0);
+    byte v0 = digitPatterns[row0 & 0x0f];
+    byte v1 = digitPatterns[row1 & 0x0f];
+    outputBits(v0, v1);
     // Makes column bits
-    outputBits(column);
-    value >>= 4;
+    outputBits(column, column);
+    row0 >>= 4;
+    row1 >>= 4;
     column >>= 1;
     flush();
   }
+}
+
+static void outputSegments(uint32_t row0, uint32_t row1) {
+  output4Segments((row0 >> 16) & 0xffffffff, (row1 >> 16) & 0xffffffff, true);
+  output4Segments(row0 & 0xffffffff, row1 & 0xffffffff, false);
 }
 
 ///////////////////////////////////////////////////////////
@@ -74,6 +88,8 @@ static void output4Segments(uint16_t value, bool isHigh) {
 void setup() {
   Serial.begin(115200);
   Serial.println("setup()");
+
+  SPI.begin();
 
   pinMode(LED0, OUTPUT);
   pinMode(LED1, OUTPUT);
@@ -97,9 +113,16 @@ void setup() {
 
   digitalWrite(SCLK, HIGH);
   digitalWrite(RCLK, HIGH);
+
+  pinMode(SPISS, OUTPUT);
+  digitalWrite(SPISS, HIGH);
+
+  pinMode(PROGRAMN, OUTPUT);
+  digitalWrite(PROGRAMN, LOW);
 }
 
 static uint32_t value = 0;
+static const SPISettings spiSettings(100000, MSBFIRST, SPI_MODE1);
 
 void loop() {
   digitalWrite(LED0, digitalRead(SW0) ? LOW : HIGH);
@@ -107,21 +130,27 @@ void loop() {
   digitalWrite(LED2, digitalRead(SW2) ? LOW : HIGH);
   digitalWrite(LED3, digitalRead(SW3) ? LOW : HIGH);
   
-  if (!digitalRead(SW4)) {
-    digitalWrite(LED0, HIGH);
-    digitalWrite(LED1, HIGH);
-    digitalWrite(LED2, HIGH);
-    digitalWrite(LED3, HIGH);
+  digitalWrite(PROGRAMN, digitalRead(SW4) ? LOW : HIGH);
 
-    Serial.println("SW4 bang.");
-  }
+  SPI.beginTransaction(spiSettings);
+  digitalWrite(SPISS, LOW);
+  uint8_t buf[5];
+  memset(buf, 0, sizeof buf);
+  SPI.transfer(&buf, sizeof buf);
+  digitalWrite(SPISS, HIGH);
+  SPI.endTransaction();
 
-  output4Segments((value >> 16) & 0xffffffff, true);
-  output4Segments(value & 0xffffffff, false);
+  const uint32_t addr = buf[2] | ((uint32_t)buf[1] << 8) | ((uint32_t)buf[0] << 16);
+  const uint32_t data = buf[4] | ((uint32_t)buf[3] << 8);
+  outputSegments(addr, data);
 
-  outputBits(0);
-  outputBits(0);
+  outputBits(0, 0);
+  outputBits(0, 0);
   flush();
 
   value++;
+
+  //Serial.print("Value=");
+  //Serial.println(value);
+  //delay(500);
 }

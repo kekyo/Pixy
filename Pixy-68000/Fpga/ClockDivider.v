@@ -11,7 +11,7 @@ always @ (posedge CLK_IN) begin
         LAST <= ~LAST;
         COUNT <= 0;
     end else begin
-        COUNT <= COUNT + 1;
+        COUNT <= COUNT + 9'd1;
     end
 end
 

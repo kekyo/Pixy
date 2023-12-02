@@ -3,9 +3,6 @@
     <Options/>
     <Implementation title="Core" dir="Core" description="Core" synthesis="lse" default_strategy="Strategy1">
         <Options def_top="Main"/>
-        <Source name="Core.v" type="Verilog" type_short="Verilog">
-            <Options top_module="Core"/>
-        </Source>
         <Source name="Main.v" type="Verilog" type_short="Verilog">
             <Options top_module="Main"/>
         </Source>
@@ -13,6 +10,9 @@
             <Options/>
         </Source>
         <Source name="BusControl.v" type="Verilog" type_short="Verilog">
+            <Options/>
+        </Source>
+        <Source name="Monitor.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
         <Source name="Core/Core.xcf" type="Programming Project File" type_short="Programming">
