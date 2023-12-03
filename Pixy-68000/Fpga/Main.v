@@ -1,6 +1,7 @@
 module Main(
 	input MCLK,
 	input AS_n,
+	input RW,
 	input UDS_n,
 	input LDS_n,
 	input SPICLK,
@@ -28,10 +29,10 @@ module Main(
 	output BR_n,
 	output DTACK_n,
 	output BERR_n,
-	output SRAMCS0_n,
-	output SRAMCS1_n,
 	output PROMCS0_n,
 	output PROMCS1_n,
+	output SRAMCS0_n,
+	output SRAMCS1_n,
 	output OE_n,
 	output SPISO
 );
@@ -53,10 +54,10 @@ wire IPL0;
 wire IPL1;
 wire IPL2;
 wire AVEC;
-wire SRAMCS0;
-wire SRAMCS1;
 wire PROMCS0;
 wire PROMCS1;
+wire SRAMCS0;
+wire SRAMCS1;
 wire OE;
 
 ClockDivider CD(
@@ -68,12 +69,19 @@ BusControl BC(
 	.STEPEN_IN(STEPEN),
 	.STEP_IN(STEP),
 	.AS_IN(AS),
+	.RW_IN(RW),
 	.UDS_IN(UDS),
 	.LDS_IN(LDS),
+	.ADDR_IN(ADDR),
 	.RESET(RESET),
 	.HALT(HALT),
 	.RUN(RUN),
-	.DTACK(DTACK));
+	.DTACK(DTACK),
+	.PROMCS0(PROMCS0),
+	.PROMCS1(PROMCS1),
+	.SRAMCS0(SRAMCS0),
+	.SRAMCS1(SRAMCS1),
+	.OE(OE));
 	
 Monitor M(
 	.SPICLK_IN(SPICLK),
@@ -88,11 +96,6 @@ assign IPL0 = 0;
 assign IPL1 = 0;
 assign IPL2 = 0;
 assign AVEC = 0;
-assign SRAMCS0 = 0;
-assign SRAMCS1 = 0;
-assign PROMCS0 = 0;
-assign PROMCS1 = 0;
-assign OE = 0;
 
 assign DTACK_n = ~DTACK;
 assign RESET_n = ~RESET;
@@ -107,7 +110,7 @@ assign AVEC_n = ~AVEC;
 assign SRAMCS0_n = ~SRAMCS0;
 assign SRAMCS1_n = ~SRAMCS1;
 assign PROMCS0_n = ~PROMCS0;
-assign PROMCS1_n = ~PROMCS0;
+assign PROMCS1_n = ~PROMCS1;
 assign OE_n = ~OE;
 
 endmodule
