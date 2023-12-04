@@ -41,6 +41,7 @@ wire SPISS = ~SPISS_n;
 wire AS = ~AS_n;
 wire UDS = ~UDS_n;
 wire LDS = ~LDS_n;
+wire WR = ~RW;
 wire STEPEN = ~STEPEN_n;
 wire STEP = ~STEP_n;
 wire [23:0] ADDR = { A23, A22, A21, A20, A19, A18, A17, A16, A15, A14, A13, A12, A11, A10, A9, A8, A7, A6, A5, A4, A3, A2, A1, A0 };
@@ -69,7 +70,7 @@ BusControl BC(
 	.STEPEN_IN(STEPEN),
 	.STEP_IN(STEP),
 	.AS_IN(AS),
-	.RW_IN(RW),
+	.WR_IN(WR),
 	.UDS_IN(UDS),
 	.LDS_IN(LDS),
 	.ADDR_IN(ADDR),

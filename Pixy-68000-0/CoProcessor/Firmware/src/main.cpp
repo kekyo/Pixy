@@ -117,12 +117,11 @@ void setup() {
   pinMode(SPISS, OUTPUT);
   digitalWrite(SPISS, HIGH);
 
-  pinMode(PROGRAMN, OUTPUT);
-  digitalWrite(PROGRAMN, LOW);
+  pinMode(PROGRAMN, INPUT);
 }
 
-static uint32_t value = 0;
 static const SPISettings spiSettings(100000, MSBFIRST, SPI_MODE1);
+static bool resetting = false;
 
 void loop() {
   digitalWrite(LED0, digitalRead(SW0) ? LOW : HIGH);
@@ -130,7 +129,19 @@ void loop() {
   digitalWrite(LED2, digitalRead(SW2) ? LOW : HIGH);
   digitalWrite(LED3, digitalRead(SW3) ? LOW : HIGH);
   
-  digitalWrite(PROGRAMN, digitalRead(SW4) ? LOW : HIGH);
+  if (!digitalRead(SW4)) {
+    if (!resetting) {
+      digitalWrite(PROGRAMN, LOW);
+      pinMode(PROGRAMN, OUTPUT);
+      resetting = true;
+    }
+  } else {
+    if (resetting) {
+      pinMode(PROGRAMN, INPUT);
+      digitalWrite(PROGRAMN, HIGH);
+      resetting = false;
+    }
+  }
 
   SPI.beginTransaction(spiSettings);
   digitalWrite(SPISS, LOW);
@@ -147,10 +158,4 @@ void loop() {
   outputBits(0, 0);
   outputBits(0, 0);
   flush();
-
-  value++;
-
-  //Serial.print("Value=");
-  //Serial.println(value);
-  //delay(500);
 }

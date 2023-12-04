@@ -3,7 +3,7 @@ module BusControl(
 	input STEPEN_IN,
 	input STEP_IN,
 	input AS_IN,
-	input RW_IN,
+	input WR_IN,
 	input UDS_IN,
 	input LDS_IN,
 	input [23:0] ADDR_IN,
@@ -23,20 +23,8 @@ module BusControl(
 reg [13:0] RESET_COUNT;
 // Stepper pause state.
 reg PAUSE_STATE;
-
-////////////////////////////////////////////////////
-
-// TODO: Address decoder.
-wire PROMCS = (ADDR_IN[23:20] == 4'b1111) | (ADDR_IN[23:20] == 4'b0000);
-wire SRAMCS = ADDR_IN[23:20] == 4'b0001;
-
-////////////////////////////////////////////////////
-
-// Address request signal.
-wire ASREQ = RUN & AS_IN;
-
-// Data request signal.
-wire DTREQ = RUN & AS_IN & (UDS_IN | LDS_IN);
+// Bootstrap read from PROM area.
+reg BOOTSTRAPPED;
 
 ////////////////////////////////////////////////////
 
@@ -56,14 +44,71 @@ end
 
 ////////////////////////////////////////////////////
 
-// Flash ROM.
-assign PROMCS0 = ASREQ & PROMCS & RW_IN & UDS_IN;    // EVEN
-assign PROMCS1 = ASREQ & PROMCS & RW_IN & LDS_IN;    // ODD
+// Booting Read                  Write
+// +---------------+            +---------------+
+// |               | 0x00ffffff |               |
+// | PROM (Flash)  |            | PROM (Flash)  |
+// |               | 0x00f00000 |               |
+// +---------------+            +---------------+
+// |   (nothing)   |            |   (nothing)   | 
+// +---------------+            +---------------+
+// |               | 0x000fffff |               |
+// | PROM (Flash)  |            | SRAM          |
+// |               | 0x00000000 |               |
+// +---------------+            +---------------+
+
+// Booted Read/Write
+// +---------------+
+// |               | 0x00ffffff
+// | PROM (Flash)  |
+// |               | 0x00f00000
+// +---------------+
+// |   (nothing)   |
+// +---------------+
+// |               | 0x000fffff
+// | SRAM          |
+// |               | 0x00000000
+// +---------------+
+
+// Address decoder.
+wire ADDRLOWER = ADDR_IN[23:20] == 4'b0000;
+wire ADDRUPPER = ADDR_IN[23:20] == 4'b1111;
+wire WRBOOTSTRAPPED = WR_IN | BOOTSTRAPPED;
+wire PROMCS = ADDRUPPER | (~WRBOOTSTRAPPED & ADDRLOWER);
+wire SRAMCS = WRBOOTSTRAPPED & ADDRLOWER;
+
+////////////////////////////////////////////////////
+
+// Address request signal.
+wire ASREQ = RUN & AS_IN;
+
+// Data request signal.
+wire DTREQ = RUN & AS_IN & (UDS_IN | LDS_IN);
+
+// Write data request in lower area.
+wire WRLOWERREQ = DTREQ & WR_IN & ADDRLOWER;
+
+// Exit from bootstrap mode.
+always @ (posedge WRLOWERREQ, negedge RUN) begin
+	if (~RUN) begin
+		BOOTSTRAPPED <= 1'd0;
+	end else begin
+		BOOTSTRAPPED <= 1'd1;
+	end
+end
+
+////////////////////////////////////////////////////
+
+// Flash PROM.
+assign PROMCS0 = ASREQ & PROMCS & UDS_IN;    // EVEN
+assign PROMCS1 = ASREQ & PROMCS & LDS_IN;    // ODD
+
 // SRAM.
 assign SRAMCS0 = ASREQ & SRAMCS & UDS_IN;    // EVEN
 assign SRAMCS1 = ASREQ & SRAMCS & LDS_IN;    // ODD
+
 // Output enable.
-assign OE = ASREQ & (PROMCS | SRAMCS) & RW_IN;
+assign OE = ASREQ & (PROMCS | SRAMCS) & ~WR_IN;
 
 ////////////////////////////////////////////////////
 
