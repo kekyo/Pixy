@@ -7,6 +7,7 @@ module BusControl(
 	input UDS_IN,
 	input LDS_IN,
 	input [23:0] ADDR_IN,
+	input [15:0] DATA_IN,
     output reg RESET,
 	output reg HALT,
 	output reg RUN,
@@ -15,7 +16,8 @@ module BusControl(
 	output PROMCS1,
 	output SRAMCS0,
 	output SRAMCS1,
-	output OE);
+	output OE,
+	output reg [7:0] OUTPUT_SIGNAL);
 
 ////////////////////////////////////////////////////
 
@@ -31,14 +33,14 @@ reg BOOTSTRAPPED;
 // Reset control.
 always @ (posedge CPUCLK_IN) begin
     if (RESET_COUNT == 'd10000) begin    // 10us/100kHz=10000 --> 100ms
-		RESET <= 1'd0;
-		HALT <= 1'd0;
-		RUN <= 1'd1;
+		RESET <= 1'b0;
+		HALT <= 1'b0;
+		RUN <= 1'b1;
     end else begin
-		RESET <= 1'd1;
-		HALT <= 1'd1;
-		RUN <= 1'd0;
-		RESET_COUNT <= RESET_COUNT + 14'd1;
+		RESET <= 1'b1;
+		HALT <= 1'b1;
+		RUN <= 1'b0;
+		RESET_COUNT <= RESET_COUNT + 14'b1;
     end
 end
 
@@ -51,6 +53,8 @@ end
 // |               | 0x00f00000 |               |
 // +---------------+            +---------------+
 // |   (nothing)   |            |   (nothing)   | 
+// +---------------+            +---------------+
+// |   I/O         | 0x00100001 |   I/O         | 
 // +---------------+            +---------------+
 // |               | 0x000fffff |               |
 // | PROM (Flash)  |            | SRAM          |
@@ -65,6 +69,8 @@ end
 // +---------------+
 // |   (nothing)   |
 // +---------------+
+// |   I/O         | 0x00100001
+// +---------------+
 // |               | 0x000fffff
 // | SRAM          |
 // |               | 0x00000000
@@ -72,7 +78,9 @@ end
 
 // Address decoder.
 wire ADDRLOWER = ADDR_IN[23:20] == 4'b0000;
+wire ADDRIO = ADDR_IN[23:20] == 4'b0001;
 wire ADDRUPPER = ADDR_IN[23:20] == 4'b1111;
+
 wire WRBOOTSTRAPPED = WR_IN | BOOTSTRAPPED;
 wire PROMCS = ADDRUPPER | (~WRBOOTSTRAPPED & ADDRLOWER);
 wire SRAMCS = WRBOOTSTRAPPED & ADDRLOWER;
@@ -86,14 +94,14 @@ wire ASREQ = RUN & AS_IN;
 wire DTREQ = RUN & AS_IN & (UDS_IN | LDS_IN);
 
 // Write data request in lower area.
-wire WRLOWERREQ = DTREQ & WR_IN & ADDRLOWER;
+wire WRLOWERREQ = DTREQ & WR_IN;
 
 // Exit from bootstrap mode.
 always @ (posedge WRLOWERREQ, negedge RUN) begin
 	if (~RUN) begin
-		BOOTSTRAPPED <= 1'd0;
-	end else begin
-		BOOTSTRAPPED <= 1'd1;
+		BOOTSTRAPPED <= 1'b0;
+	end else if (ADDRLOWER) begin
+		BOOTSTRAPPED <= 1'b1;
 	end
 end
 
@@ -112,43 +120,56 @@ assign OE = ASREQ & (PROMCS | SRAMCS) & ~WR_IN;
 
 ////////////////////////////////////////////////////
 
+// Output signal port. (0x00100001)
+wire OUTPUT_SIGNAL_REQ = DTREQ & LDS_IN & WR_IN;
+
+always @ (posedge OUTPUT_SIGNAL_REQ, negedge RUN) begin
+	if (~RUN) begin
+		OUTPUT_SIGNAL <= 8'b0;
+	end else if (ADDRIO & (ADDR_IN[19:0] == 20'b1)) begin
+		OUTPUT_SIGNAL <= DATA_IN[7:0];
+	end
+end
+
+////////////////////////////////////////////////////
+
 // DTACK control with stepper.
 always @ (posedge CPUCLK_IN) begin
 	// Not under pause.
-	if (PAUSE_STATE == 1'd0) begin
+	if (PAUSE_STATE == 1'b0) begin
 		// Inactivated DTREQ.
-		if (DTREQ == 1'd0) begin
+		if (~DTREQ) begin
 			// Negate DTACK.
-			DTACK <= 1'd0;
+			DTACK <= 1'b0;
 		// Activated DTREQ and into stepper mode.
-		end else if (STEPEN_IN == 1'd1) begin
+		end else if (STEPEN_IN) begin
 			// Pressed step switch.
-			if (STEP_IN == 1'd1) begin
+			if (STEP_IN) begin
 				// Assert DTACK.
-				DTACK <= 1'd1;
+				DTACK <= 1'b1;
 				// Send to next state.
-				PAUSE_STATE <= 1'd1;
+				PAUSE_STATE <= 1'b1;
 			// Not clicked step switch.
 			end else begin
 				// Negate DTACK.
-				DTACK <= 1'd0;
+				DTACK <= 1'b0;
 			end
 		// Activated DTREQ and not into stepper mode.
 		end else begin
 			// Assert DTACK.
-			DTACK <= 1'd1;
+			DTACK <= 1'b1;
 		end
 	// Pausing.
 	end else begin
 		// Inactivated DTREQ.
-		if (DTREQ == 1'd0) begin
+		if (~DTREQ) begin
 			// Negate DTACK.
-			DTACK <= 1'd0;
+			DTACK <= 1'b0;
 		end
 		// Released step switch.
-		if (DTACK == 1'd0 & STEP_IN == 1'd0) begin
+		if (~DTACK & ~STEP_IN) begin
 			// Send to first state.
-			PAUSE_STATE <= 1'd0;
+			PAUSE_STATE <= 1'b0;
 		end
 	end
 end

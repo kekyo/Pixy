@@ -85,6 +85,7 @@ static void outputSegments(uint32_t row0, uint32_t row1) {
 
 ///////////////////////////////////////////////////////////
 
+// Setup.
 void setup() {
   Serial.begin(115200);
   Serial.println("setup()");
@@ -120,15 +121,14 @@ void setup() {
   pinMode(PROGRAMN, INPUT);
 }
 
-static const SPISettings spiSettings(100000, MSBFIRST, SPI_MODE1);
+///////////////////////////////////////////////////////////
+
+static const SPISettings spiSettings(8000000, MSBFIRST, SPI_MODE1);
 static bool resetting = false;
 
+// Loop handler.
 void loop() {
-  digitalWrite(LED0, digitalRead(SW0) ? LOW : HIGH);
-  digitalWrite(LED1, digitalRead(SW1) ? LOW : HIGH);
-  digitalWrite(LED2, digitalRead(SW2) ? LOW : HIGH);
-  digitalWrite(LED3, digitalRead(SW3) ? LOW : HIGH);
-  
+  // Assert reset to FPGA (68000).
   if (!digitalRead(SW4)) {
     if (!resetting) {
       digitalWrite(PROGRAMN, LOW);
@@ -143,19 +143,29 @@ void loop() {
     }
   }
 
+  // Polling by SPI.
   SPI.beginTransaction(spiSettings);
   digitalWrite(SPISS, LOW);
-  uint8_t buf[5];
+  uint8_t buf[6];
   memset(buf, 0, sizeof buf);
   SPI.transfer(&buf, sizeof buf);
   digitalWrite(SPISS, HIGH);
   SPI.endTransaction();
 
+  // Extracts 68000 address and data bus bits.
   const uint32_t addr = buf[2] | ((uint32_t)buf[1] << 8) | ((uint32_t)buf[0] << 16);
   const uint32_t data = buf[4] | ((uint32_t)buf[3] << 8);
-  outputSegments(addr, data);
 
+  // Print to 8seg modules.
+  outputSegments(addr, data);
   outputBits(0, 0);
   outputBits(0, 0);
   flush();
+
+  // Extracts output signals to drive LEDs.
+  uint8_t outputSignal = ~buf[5];
+  digitalWrite(LED0, (outputSignal & 0x01) ? LOW : HIGH);
+  digitalWrite(LED1, (outputSignal & 0x02) ? LOW : HIGH);
+  digitalWrite(LED2, (outputSignal & 0x04) ? LOW : HIGH);
+  digitalWrite(LED3, (outputSignal & 0x08) ? LOW : HIGH);
 }

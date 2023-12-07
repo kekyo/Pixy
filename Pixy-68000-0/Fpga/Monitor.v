@@ -3,7 +3,8 @@ module Monitor(
 	input SPISS_IN,
 	input [23:0] ADDR_IN,
 	input [15:0] DATA_IN,
-	output reg SPISO
+	input [7:0] OUTPUT_SIGNAL_IN,
+	output SPISO
 );
 
 ////////////////////////////////////////////////////
@@ -12,28 +13,26 @@ module Monitor(
 reg [5:0] SPI_STATE;
 
 // SPI bit shift buffer.
-reg [39:0] BUFFER;
+reg [47:0] BUFFER;
 
 ////////////////////////////////////////////////////
 
 always @ (posedge SPICLK_IN, negedge SPISS_IN) begin
 	if (SPISS_IN == 1'd0) begin
-		SPISO = 1'bz;
+		BUFFER[47] <= 1'bz;
 		SPI_STATE <= 6'd0;
 	end else if (SPI_STATE == 0) begin
-		BUFFER = { ADDR_IN, DATA_IN };
-		SPISO = BUFFER[39];
-		//SPISO = 1'd1;
+		BUFFER <= { ADDR_IN, DATA_IN, OUTPUT_SIGNAL_IN };
 		SPI_STATE <= SPI_STATE + 6'd1;
-	end else if (SPI_STATE != 40) begin
-		SPISO = BUFFER[39];
-		//SPISO = 1'd1;
+	end else if (SPI_STATE != 49) begin
+	    BUFFER <= { BUFFER[46:0], 1'd0 };
 		SPI_STATE <= SPI_STATE + 6'd1;
 	end else begin
-		SPISO = 1'd0;
+		BUFFER[47] <= 1'd0;
 		SPI_STATE <= 6'd0;
 	end
-	BUFFER = { BUFFER[38:0], 1'd0 };
 end
+
+assign SPISO = BUFFER[47];
 
 endmodule

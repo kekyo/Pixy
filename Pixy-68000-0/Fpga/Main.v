@@ -60,6 +60,7 @@ wire PROMCS1;
 wire SRAMCS0;
 wire SRAMCS1;
 wire OE;
+wire [7:0] OUTPUT_SIGNAL;
 
 ClockDivider CD(
 	.CLK_IN(MCLK),
@@ -74,6 +75,7 @@ BusControl BC(
 	.UDS_IN(UDS),
 	.LDS_IN(LDS),
 	.ADDR_IN(ADDR),
+	.DATA_IN(DATA),
 	.RESET(RESET),
 	.HALT(HALT),
 	.RUN(RUN),
@@ -82,13 +84,15 @@ BusControl BC(
 	.PROMCS1(PROMCS1),
 	.SRAMCS0(SRAMCS0),
 	.SRAMCS1(SRAMCS1),
-	.OE(OE));
+	.OE(OE),
+	.OUTPUT_SIGNAL(OUTPUT_SIGNAL));
 	
 Monitor M(
 	.SPICLK_IN(SPICLK),
 	.SPISS_IN(SPISS),
 	.ADDR_IN(ADDR),
 	.DATA_IN(DATA),
+	.OUTPUT_SIGNAL_IN(OUTPUT_SIGNAL),
 	.SPISO(SPISO));
 
 assign BERR = 0;
