@@ -15,6 +15,9 @@
         <Source name="Monitor.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
+        <Source name="Reset.v" type="Verilog" type_short="Verilog">
+            <Options/>
+        </Source>
         <Source name="Core/Core.xcf" type="Programming Project File" type_short="Programming">
             <Options/>
         </Source>

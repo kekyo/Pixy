@@ -8,9 +8,7 @@ module BusControl(
 	input LDS_IN,
 	input [23:0] ADDR_IN,
 	input [15:0] DATA_IN,
-    output reg RESET,
-	output reg HALT,
-	output reg RUN,
+	input RUN_IN,
 	output reg DTACK,
 	output PROMCS0,
 	output PROMCS1,
@@ -21,28 +19,10 @@ module BusControl(
 
 ////////////////////////////////////////////////////
 
-// Reset waiting counter.
-reg [13:0] RESET_COUNT;
 // Stepper pause state.
 reg PAUSE_STATE;
 // Bootstrap read from PROM area.
 reg BOOTSTRAPPED;
-
-////////////////////////////////////////////////////
-
-// Reset control.
-always @ (posedge CPUCLK_IN) begin
-    if (RESET_COUNT == 'd10000) begin    // 10us/100kHz=10000 --> 100ms
-		RESET <= 1'b0;
-		HALT <= 1'b0;
-		RUN <= 1'b1;
-    end else begin
-		RESET <= 1'b1;
-		HALT <= 1'b1;
-		RUN <= 1'b0;
-		RESET_COUNT <= RESET_COUNT + 14'b1;
-    end
-end
 
 ////////////////////////////////////////////////////
 
@@ -88,17 +68,17 @@ wire SRAMCS = WRBOOTSTRAPPED & ADDRLOWER;
 ////////////////////////////////////////////////////
 
 // Address request signal.
-wire ASREQ = RUN & AS_IN;
+wire ASREQ = RUN_IN & AS_IN;
 
 // Data request signal.
-wire DTREQ = RUN & AS_IN & (UDS_IN | LDS_IN);
+wire DTREQ = RUN_IN & AS_IN & (UDS_IN | LDS_IN);
 
 // Write data request in lower area.
 wire WRLOWERREQ = DTREQ & WR_IN;
 
 // Exit from bootstrap mode.
-always @ (posedge WRLOWERREQ, negedge RUN) begin
-	if (~RUN) begin
+always @ (posedge WRLOWERREQ, negedge RUN_IN) begin
+	if (~RUN_IN) begin
 		BOOTSTRAPPED <= 1'b0;
 	end else if (ADDRLOWER) begin
 		BOOTSTRAPPED <= 1'b1;
@@ -123,8 +103,8 @@ assign OE = ASREQ & (PROMCS | SRAMCS) & ~WR_IN;
 // Output signal port. (0x00100001)
 wire OUTPUT_SIGNAL_REQ = DTREQ & LDS_IN & WR_IN;
 
-always @ (posedge OUTPUT_SIGNAL_REQ, negedge RUN) begin
-	if (~RUN) begin
+always @ (posedge OUTPUT_SIGNAL_REQ, negedge RUN_IN) begin
+	if (~RUN_IN) begin
 		OUTPUT_SIGNAL <= 8'b0;
 	end else if (ADDRIO & (ADDR_IN[19:0] == 20'b1)) begin
 		OUTPUT_SIGNAL <= DATA_IN[7:0];
