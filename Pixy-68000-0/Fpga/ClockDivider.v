@@ -1,20 +1,28 @@
 module ClockDivider(
     input CLK_IN,
-    output CLK_OUT);
+    output reg CLK_OUT);
 
-reg LAST;
-reg [8:0] COUNT;
+/////////////////////////////////////////////
 
-// CLK_IN=40MHz
+// CLK_IN=40MHz  (25ns)
+//always @ (posedge CLK_IN) begin
+//	CLK_OUT <= ~CLK_OUT;  // 50ns/20MHz
+//end
+
+/////////////////////////////////////////////
+
+reg [7:0] COUNT;
+
+// For slower, testing purpose.
+// CLK_IN=40MHz  (25ns)
 always @ (posedge CLK_IN) begin
-    if (COUNT == 'd399) begin   // 10us/100kHz=199
-        LAST <= ~LAST;
+    if (COUNT == 'd39) begin   // 2us/0.5MHz
+    //if (COUNT == 'd199) begin   // 10us/100kHz
+        CLK_OUT <= ~CLK_OUT;
         COUNT <= 0;
     end else begin
         COUNT <= COUNT + 9'd1;
     end
 end
-
-assign CLK_OUT = LAST;
 
 endmodule
