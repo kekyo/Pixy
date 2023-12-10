@@ -123,7 +123,11 @@ Or, you can also hook a logic analyzer probe to the header pins on the top of th
 1. Build and write this checker firmware into Flash PROMs.
    [SRAM checker firmware](Firmware/sram_check/)
 2. Power on.
-3. See status LEDs. The test takes about 2 hours to complete when the CPU clock is 20 MHz.
+3. See status LEDs. The test takes about 20 minutes to complete when the CPU clock is 20 MHz.
    ![Status LEDs](Images/Pixy-68000-0-sram_check.jpg)
+
+NOTE: [Strict SRAM checker firmware](Firmware/strict_sram_check/)
+checks that the bits in the SRAM are written correctly and that none are written to unrelated addresses.
+Therefore, this code takes a very long time (maybe some days).
 
 ### TODO:
