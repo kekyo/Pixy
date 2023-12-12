@@ -27,18 +27,19 @@ always @ (posedge SPICLK_IN, negedge SPISS_IN) begin
 		SEND_BUFFER[47] <= 1'bz;
 		SPI_STATE <= 6'd0;
 	end else if (SPI_STATE == 0) begin
-		SEND_BUFFER <= { ADDR_IN, DATA_IN, OUTPUT_SIGNAL_IN };
+		// Little endian, LSB first format.
+		SEND_BUFFER <= { OUTPUT_SIGNAL_IN, DATA_IN, ADDR_IN };
 		SPI_STATE <= SPI_STATE + 6'd1;
 	end else if (SPI_STATE != 6'd49) begin
-	    SEND_BUFFER <= { SEND_BUFFER[46:0], 1'b0 };
+	    SEND_BUFFER <= { 1'b0, SEND_BUFFER[47:1] };
 		SPI_STATE <= SPI_STATE + 6'd1;
 	end else begin
-		SEND_BUFFER[47] <= 1'd0;
+		SEND_BUFFER[0] <= 1'd0;
 		SPI_STATE <= 6'd0;
 	end
 end
 
-assign SPISO = SEND_BUFFER[47];
+assign SPISO = SEND_BUFFER[0];
 
 always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
 	if (SPISS_IN == 1'd0) begin
@@ -46,9 +47,9 @@ always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
 	end else if (SPI_STATE == 6'd0) begin
 		RECEIVE_BUFFER <= 8'b0;
 	end else if (SPI_STATE < 6'd8) begin
-		RECEIVE_BUFFER <= { RECEIVE_BUFFER[6:0], SPISI_IN };
+		RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
 	end else if (SPI_STATE == 6'd8) begin
-		INPUT_SIGNAL <= { RECEIVE_BUFFER[6:0], SPISI_IN };
+		INPUT_SIGNAL <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
     end
 end
 

@@ -85,12 +85,12 @@ static void outputSegments(uint32_t row0, uint32_t row1) {
 
 ///////////////////////////////////////////////////////////
 
-//#define SPI_SPEED 8000000
-#define SPI_SPEED 100000
+#define SPI_SPEED 8000000
+//#define SPI_SPEED 100000
 #define SW_BITS 0
 #define LED_BITS 5
 
-static const SPISettings spiSettings(SPI_SPEED, MSBFIRST, SPI_MODE1);
+static const SPISettings spiSettings(SPI_SPEED, LSBFIRST, SPI_MODE1);
 static uint8_t spiBuffer[6];
 
 static bool resetting = false;
@@ -170,10 +170,11 @@ void loop() {
   SPI.endTransaction();
 
   // Extracts 68000 address and data bus bits.
+  // It is little endian format.
   const uint32_t addr =
-    spiBuffer[2] | ((uint32_t)spiBuffer[1] << 8) | ((uint32_t)spiBuffer[0] << 16);
+    spiBuffer[0] | ((uint32_t)spiBuffer[1] << 8) | ((uint32_t)spiBuffer[2] << 16);
   const uint32_t data =
-    spiBuffer[4] | ((uint32_t)spiBuffer[3] << 8);
+    spiBuffer[3] | ((uint32_t)spiBuffer[4] << 8);
 
   // Print to 8seg modules.
   outputSegments(addr, data);
