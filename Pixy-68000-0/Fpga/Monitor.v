@@ -4,8 +4,8 @@ module Monitor(
 	input SPISS_IN,
 	input [23:0] ADDR_IN,
 	input [15:0] DATA_IN,
-	input [7:0] OUTPUT_SIGNAL_IN,
-	output reg [7:0] INPUT_SIGNAL,
+	input [3:0] OUTPUT_SIGNAL_IN,
+	output reg [3:0] INPUT_SIGNAL,
 	output SPISO
 );
 
@@ -28,13 +28,13 @@ always @ (posedge SPICLK_IN, negedge SPISS_IN) begin
 		SPI_STATE <= 6'd0;
 	end else if (SPI_STATE == 0) begin
 		// Little endian, LSB first format.
-		SEND_BUFFER <= { OUTPUT_SIGNAL_IN, DATA_IN, ADDR_IN };
+		SEND_BUFFER <= { 4'b0, OUTPUT_SIGNAL_IN, DATA_IN, ADDR_IN };
 		SPI_STATE <= SPI_STATE + 6'd1;
 	end else if (SPI_STATE != 6'd49) begin
 	    SEND_BUFFER <= { 1'b0, SEND_BUFFER[47:1] };
 		SPI_STATE <= SPI_STATE + 6'd1;
 	end else begin
-		SEND_BUFFER[0] <= 1'd0;
+		SEND_BUFFER[0] <= 1'b0;
 		SPI_STATE <= 6'd0;
 	end
 end
@@ -49,7 +49,8 @@ always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
 	end else if (SPI_STATE < 6'd8) begin
 		RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
 	end else if (SPI_STATE == 6'd8) begin
-		INPUT_SIGNAL <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
+		// <= { SPISI_IN, RECEIVE_BUFFER[7:1] }[3:0]
+		INPUT_SIGNAL <= RECEIVE_BUFFER[4:1];
     end
 end
 

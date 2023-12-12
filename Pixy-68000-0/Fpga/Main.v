@@ -61,8 +61,8 @@ wire PROMCS1;
 wire SRAMCS0;
 wire SRAMCS1;
 wire OE;
-wire [7:0] OUTPUT_SIGNAL;
-wire [7:0] INPUT_SIGNAL;
+wire [3:0] OUTPUT_SIGNAL;
+wire [3:0] INPUT_SIGNAL;
 
 ClockDivider CD(
 	.CLK_IN(MCLK),

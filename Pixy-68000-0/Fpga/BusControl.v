@@ -7,7 +7,7 @@ module BusControl(
 	input WR_IN,
 	input UDS_IN,
 	input LDS_IN,
-	input [7:0] INPUT_SIGNAL_IN,
+	input [3:0] INPUT_SIGNAL_IN,
 	input [23:0] ADDR_IN,
 	inout [15:0] DATA,
 	output reg DTACK,
@@ -16,7 +16,7 @@ module BusControl(
 	output SRAMCS0,
 	output SRAMCS1,
 	output OE,
-	output reg [7:0] OUTPUT_SIGNAL);
+	output reg [3:0] OUTPUT_SIGNAL);
 
 ////////////////////////////////////////////////////
 
@@ -35,8 +35,7 @@ reg BOOTSTRAPPED;
 // +---------------+            +---------------+
 // |   (nothing)   |            |   (nothing)   | 
 // +---------------+            +---------------+
-// |   Input       | 0x00100003 |   Input       | 
-// |   Output      | 0x00100001 |   Output      | 
+// |   I/O         | 0x00100001 |   I/O         | 
 // +---------------+            +---------------+
 // |               | 0x000fffff |               |
 // | PROM (Flash)  |            | SRAM          |
@@ -51,8 +50,7 @@ reg BOOTSTRAPPED;
 // +---------------+
 // |   (nothing)   |
 // +---------------+
-// |   Input       | 0x00100003
-// |   Output      | 0x00100001
+// |   I/O         | 0x00100001
 // +---------------+
 // |               | 0x000fffff
 // | SRAM          |
@@ -104,40 +102,28 @@ assign OE = ASREQ & (PROMCS | SRAMCS) & ~WR_IN;
 ////////////////////////////////////////////////////
 
 wire SIGNAL_REQ = DTREQ & LDS_IN;
-reg OUTPUT_SIGNAL_READING;
-reg INPUT_SIGNAL_READING;
+wire ADDRSIGNAL = ADDRIO & (ADDR_IN[19:0] == 20'b1);
+reg SIGNAL_READING;
 
-// Output signal port. (0x00100001)
+// Output signal port. (0x00100001, bit7-4)
 always @ (posedge SIGNAL_REQ, negedge SIGNAL_REQ, negedge RUN_IN) begin
 	if (~RUN_IN) begin
-		OUTPUT_SIGNAL <= 8'b0;
-		OUTPUT_SIGNAL_READING <= 1'b0;
-	end else if (ADDRIO & (ADDR_IN[19:0] == 20'b1)) begin
+		OUTPUT_SIGNAL <= 4'b0;
+		SIGNAL_READING <= 1'b0;
+	end else if (ADDRSIGNAL) begin
 		if (WR_IN) begin
-			OUTPUT_SIGNAL <= DATA[7:0];
-			OUTPUT_SIGNAL_READING <= 1'b0;
+			OUTPUT_SIGNAL <= DATA[7:4];
+			SIGNAL_READING <= 1'b0;
 		end else begin
-			OUTPUT_SIGNAL_READING <= 1'b1;
+			SIGNAL_READING <= 1'b1;
 		end
 	end else begin
-		OUTPUT_SIGNAL_READING <= 1'b0;
+		SIGNAL_READING <= 1'b0;
 	end
 end
 
-assign DATA[15:0] = OUTPUT_SIGNAL_READING ? { 8'b0, OUTPUT_SIGNAL } : 16'bz;
-
-// Input signal port. (0x00100003)
-always @ (posedge SIGNAL_REQ, negedge SIGNAL_REQ, negedge RUN_IN) begin
-	if (~RUN_IN) begin
-		INPUT_SIGNAL_READING <= 1'b0;
-	end else if (~WR_IN & ADDRIO & (ADDR_IN[19:0] == 20'b11)) begin
-		INPUT_SIGNAL_READING <= 1'b1;
-	end	else begin
-		INPUT_SIGNAL_READING <= 1'b0;
-	end
-end
-
-assign DATA[15:0] = INPUT_SIGNAL_READING ? { 8'b0, INPUT_SIGNAL_IN } : 16'bz;
+// I/O signal port. (Input signal is lower bit3-0)
+assign DATA[15:0] = SIGNAL_READING ? { 8'b0, OUTPUT_SIGNAL, INPUT_SIGNAL_IN } : 16'bz;
 
 ////////////////////////////////////////////////////
 

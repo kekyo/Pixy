@@ -8,50 +8,29 @@ typedef unsigned int uint32_t;
 #define HIGH 1
 #define LOW 0
 
-#define PIN_LED0 0
-#define PIN_LED1 1
-#define PIN_LED2 2
-#define PIN_LED3 3
+#define PIN_SW0 0
+#define PIN_SW1 1
+#define PIN_SW2 2
+#define PIN_SW3 3
 
-#define PIN_SW0 4
-#define PIN_SW1 5
-#define PIN_SW2 6
-#define PIN_SW3 7
+#define PIN_LED0 4
+#define PIN_LED1 5
+#define PIN_LED2 6
+#define PIN_LED3 7
 
-static volatile uint8_t* const pOutputSignal = (uint8_t*)0x00100001;
-static const volatile uint8_t* const pInputSignal = (uint8_t*)0x00100003;
+static volatile uint8_t* const pSignal = (uint8_t*)0x00100001;
 
 // Arduino like LED output.
 static inline void digitalWrite(uint8_t pin, uint8_t val) {
-    switch (pin) {
-        case PIN_LED0:
-        case PIN_LED1:
-        case PIN_LED2:
-        case PIN_LED3:
-            if (val) {
-                *pOutputSignal |= 0x01 << (pin - PIN_LED0);
-            } else {
-                *pOutputSignal &= ~(0x01 << (pin - PIN_LED0));
-            }
-            break;
+    if (val) {
+        *pSignal |= 0x01 << pin;
+    } else {
+        *pSignal &= ~(0x01 << pin);
     }
 }
 
 static inline int digitalRead(uint8_t pin) {
-    switch (pin) {
-        case PIN_LED0:
-        case PIN_LED1:
-        case PIN_LED2:
-        case PIN_LED3:
-            return *pOutputSignal & (0x01 << (pin - PIN_LED0));
-        case PIN_SW0:
-        case PIN_SW1:
-        case PIN_SW2:
-        case PIN_SW3:
-            return *pInputSignal & (0x01 << (pin - PIN_SW0));
-        default:
-            return LOW;
-    }
+    return *pSignal & (0x01 << pin);
 }
 
 void main() {
