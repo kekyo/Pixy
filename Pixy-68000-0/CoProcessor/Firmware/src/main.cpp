@@ -85,6 +85,16 @@ static void outputSegments(uint32_t row0, uint32_t row1) {
 
 ///////////////////////////////////////////////////////////
 
+//#define SPI_SPEED 8000000
+#define SPI_SPEED 100000
+#define SW_BITS 0
+#define LED_BITS 5
+
+static const SPISettings spiSettings(SPI_SPEED, MSBFIRST, SPI_MODE1);
+static uint8_t spiBuffer[6];
+
+static bool resetting = false;
+
 // Setup.
 void setup() {
   Serial.begin(115200);
@@ -123,9 +133,6 @@ void setup() {
 
 ///////////////////////////////////////////////////////////
 
-static const SPISettings spiSettings(8000000, MSBFIRST, SPI_MODE1);
-static bool resetting = false;
-
 // Loop handler.
 void loop() {
   // Assert reset to FPGA (68000).
@@ -143,18 +150,30 @@ void loop() {
     }
   }
 
+  // Store switch bits into the SPI buffer.
+  spiBuffer[SW_BITS] =
+    (digitalRead(SW0) ? 0x00 : 0x01) |
+    (digitalRead(SW1) ? 0x00 : 0x02) |
+    (digitalRead(SW2) ? 0x00 : 0x04) |
+    (digitalRead(SW3) ? 0x00 : 0x08);
+  spiBuffer[1] = 0x00;
+  spiBuffer[2] = 0x00;
+  spiBuffer[3] = 0x00;
+  spiBuffer[4] = 0x00;
+  spiBuffer[5] = 0x00;
+
   // Polling by SPI.
   SPI.beginTransaction(spiSettings);
   digitalWrite(SPISS, LOW);
-  uint8_t buf[6];
-  memset(buf, 0, sizeof buf);
-  SPI.transfer(&buf, sizeof buf);
+  SPI.transfer(&spiBuffer, sizeof spiBuffer);
   digitalWrite(SPISS, HIGH);
   SPI.endTransaction();
 
   // Extracts 68000 address and data bus bits.
-  const uint32_t addr = buf[2] | ((uint32_t)buf[1] << 8) | ((uint32_t)buf[0] << 16);
-  const uint32_t data = buf[4] | ((uint32_t)buf[3] << 8);
+  const uint32_t addr =
+    spiBuffer[2] | ((uint32_t)spiBuffer[1] << 8) | ((uint32_t)spiBuffer[0] << 16);
+  const uint32_t data =
+    spiBuffer[4] | ((uint32_t)spiBuffer[3] << 8);
 
   // Print to 8seg modules.
   outputSegments(addr, data);
@@ -163,9 +182,9 @@ void loop() {
   flush();
 
   // Extracts output signals to drive LEDs.
-  uint8_t outputSignal = ~buf[5];
-  digitalWrite(LED0, (outputSignal & 0x01) ? LOW : HIGH);
-  digitalWrite(LED1, (outputSignal & 0x02) ? LOW : HIGH);
-  digitalWrite(LED2, (outputSignal & 0x04) ? LOW : HIGH);
-  digitalWrite(LED3, (outputSignal & 0x08) ? LOW : HIGH);
+  const uint8_t outputSignal = spiBuffer[LED_BITS];
+  digitalWrite(LED0, (outputSignal & 0x01) ? HIGH : LOW);
+  digitalWrite(LED1, (outputSignal & 0x02) ? HIGH : LOW);
+  digitalWrite(LED2, (outputSignal & 0x04) ? HIGH : LOW);
+  digitalWrite(LED3, (outputSignal & 0x08) ? HIGH : LOW);
 }

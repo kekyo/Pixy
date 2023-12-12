@@ -1,9 +1,11 @@
 module Monitor(
 	input SPICLK_IN,
+	input SPISI_IN,
 	input SPISS_IN,
 	input [23:0] ADDR_IN,
 	input [15:0] DATA_IN,
 	input [7:0] OUTPUT_SIGNAL_IN,
+	output reg [7:0] INPUT_SIGNAL,
 	output SPISO
 );
 
@@ -12,27 +14,42 @@ module Monitor(
 // SPI state.
 reg [5:0] SPI_STATE;
 
-// SPI bit shift buffer.
-reg [47:0] BUFFER;
+// SPI sender bit shift buffer.
+reg [47:0] SEND_BUFFER;
+
+// SPI receiver bit shift buffer.
+reg [7:0] RECEIVE_BUFFER;
 
 ////////////////////////////////////////////////////
 
 always @ (posedge SPICLK_IN, negedge SPISS_IN) begin
 	if (SPISS_IN == 1'd0) begin
-		BUFFER[47] <= 1'bz;
+		SEND_BUFFER[47] <= 1'bz;
 		SPI_STATE <= 6'd0;
 	end else if (SPI_STATE == 0) begin
-		BUFFER <= { ADDR_IN, DATA_IN, OUTPUT_SIGNAL_IN };
+		SEND_BUFFER <= { ADDR_IN, DATA_IN, OUTPUT_SIGNAL_IN };
 		SPI_STATE <= SPI_STATE + 6'd1;
-	end else if (SPI_STATE != 49) begin
-	    BUFFER <= { BUFFER[46:0], 1'd0 };
+	end else if (SPI_STATE != 6'd49) begin
+	    SEND_BUFFER <= { SEND_BUFFER[46:0], 1'b0 };
 		SPI_STATE <= SPI_STATE + 6'd1;
 	end else begin
-		BUFFER[47] <= 1'd0;
+		SEND_BUFFER[47] <= 1'd0;
 		SPI_STATE <= 6'd0;
 	end
 end
 
-assign SPISO = BUFFER[47];
+assign SPISO = SEND_BUFFER[47];
+
+always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
+	if (SPISS_IN == 1'd0) begin
+		RECEIVE_BUFFER <= 8'b0;
+	end else if (SPI_STATE == 6'd0) begin
+		RECEIVE_BUFFER <= 8'b0;
+	end else if (SPI_STATE < 6'd8) begin
+		RECEIVE_BUFFER <= { RECEIVE_BUFFER[6:0], SPISI_IN };
+	end else if (SPI_STATE == 6'd8) begin
+		INPUT_SIGNAL <= { RECEIVE_BUFFER[6:0], SPISI_IN };
+    end
+end
 
 endmodule

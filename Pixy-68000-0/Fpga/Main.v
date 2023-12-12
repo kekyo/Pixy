@@ -6,6 +6,7 @@ module Main(
 	input LDS_n,
 	input SPICLK,
 	input SPISS_n,
+	input SPISI,
 	input STEPEN_n,
 	input STEP_n,
 	input A0, input A1, input A2, input A3,
@@ -14,10 +15,10 @@ module Main(
 	input A12, input A13, input A14, input A15,
 	input A16, input A17, input A18, input A19,
 	input A20, input A21, input A22, input A23,
-	input D0, input D1, input D2, input D3,
-	input D4, input D5, input D6, input D7,
-	input D8, input D9, input D10, input D11,
-	input D12, input D13, input D14, input D15,
+	inout D0, inout D1, inout D2, inout D3,
+	inout D4, inout D5, inout D6, inout D7,
+	inout D8, inout D9, inout D10, inout D11,
+	inout D12, inout D13, inout D14, inout D15,
 	output CPUCLK,
 	output RUN,
 	output RESET_n,
@@ -61,6 +62,7 @@ wire SRAMCS0;
 wire SRAMCS1;
 wire OE;
 wire [7:0] OUTPUT_SIGNAL;
+wire [7:0] INPUT_SIGNAL;
 
 ClockDivider CD(
 	.CLK_IN(MCLK),
@@ -76,13 +78,14 @@ BusControl BC(
 	.CPUCLK_IN(CPUCLK),
 	.STEPEN_IN(STEPEN),
 	.STEP_IN(STEP),
+	.RUN_IN(RUN),
 	.AS_IN(AS),
 	.WR_IN(WR),
 	.UDS_IN(UDS),
 	.LDS_IN(LDS),
+	.INPUT_SIGNAL_IN(INPUT_SIGNAL),
 	.ADDR_IN(ADDR),
-	.DATA_IN(DATA),
-	.RUN_IN(RUN),
+	.DATA(DATA),
 	.DTACK(DTACK),
 	.PROMCS0(PROMCS0),
 	.PROMCS1(PROMCS1),
@@ -94,9 +97,11 @@ BusControl BC(
 Monitor M(
 	.SPICLK_IN(SPICLK),
 	.SPISS_IN(SPISS),
+	.SPISI_IN(SPISI),
 	.ADDR_IN(ADDR),
 	.DATA_IN(DATA),
 	.OUTPUT_SIGNAL_IN(OUTPUT_SIGNAL),
+	.INPUT_SIGNAL(INPUT_SIGNAL),
 	.SPISO(SPISO));
 
 assign BERR = 0;

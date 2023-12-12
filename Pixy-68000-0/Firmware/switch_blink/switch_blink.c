@@ -1,4 +1,7 @@
-#include <stdint.h>
+
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
 
 #define F_CPU 20000000L
 
@@ -19,7 +22,7 @@ static volatile uint8_t* const pOutputSignal = (uint8_t*)0x00100001;
 static const volatile uint8_t* const pInputSignal = (uint8_t*)0x00100003;
 
 // Arduino like LED output.
-static void digitalWrite(uint8_t pin, uint8_t val) {
+static inline void digitalWrite(uint8_t pin, uint8_t val) {
     switch (pin) {
         case PIN_LED0:
         case PIN_LED1:
@@ -34,7 +37,7 @@ static void digitalWrite(uint8_t pin, uint8_t val) {
     }
 }
 
-static int digitalRead(uint8_t pin) {
+static inline int digitalRead(uint8_t pin) {
     switch (pin) {
         case PIN_LED0:
         case PIN_LED1:
@@ -48,13 +51,6 @@ static int digitalRead(uint8_t pin) {
             return *pInputSignal & (0x01 << (pin - PIN_SW0));
         default:
             return LOW;
-    }
-}
-
-static void delay(unsigned long ms) {
-    for (unsigned long i = 0; i < ms; i++) {
-        for (uint32_t j = 0; j < 100000; j++) {
-        }
     }
 }
 

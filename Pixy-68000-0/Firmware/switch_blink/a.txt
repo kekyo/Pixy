@@ -1,0 +1,82 @@
+
+switch_blink.elf:     file format elf32-m68k
+
+
+Disassembly of section .text:
+
+00f00000 <_start-0x8>:
+  f00000:	0010 0000      	orib #0,%a0@
+  f00004:	00f0           	.short 0x00f0
+  f00006:	0008           	.short 0x0008
+
+00f00008 <_start>:
+  f00008:	b140           	eorw %d0,%d0
+  f0000a:	2c40           	moveal %d0,%fp
+  f0000c:	4ef9 00f0 0014 	jmp f00014 <main>
+	...
+
+00f00014 <main>:
+  f00014:	603e           	bras f00054 <main+0x40>
+  f00016:	207c 0010 0001 	moveal #1048577,%a0
+  f0001c:	1010           	moveb %a0@,%d0
+  f0001e:	0200 fffe      	andib #-2,%d0
+  f00022:	1080           	moveb %d0,%a0@
+  f00024:	6048           	bras f0006e <main+0x5a>
+  f00026:	207c 0010 0001 	moveal #1048577,%a0
+  f0002c:	1010           	moveb %a0@,%d0
+  f0002e:	0200 fffd      	andib #-3,%d0
+  f00032:	1080           	moveb %d0,%a0@
+  f00034:	6052           	bras f00088 <main+0x74>
+  f00036:	207c 0010 0001 	moveal #1048577,%a0
+  f0003c:	1010           	moveb %a0@,%d0
+  f0003e:	0200 fffb      	andib #-5,%d0
+  f00042:	1080           	moveb %d0,%a0@
+  f00044:	605c           	bras f000a2 <main+0x8e>
+  f00046:	207c 0010 0001 	moveal #1048577,%a0
+  f0004c:	1010           	moveb %a0@,%d0
+  f0004e:	0000 0008      	orib #8,%d0
+  f00052:	1080           	moveb %d0,%a0@
+  f00054:	1039 0010 0003 	moveb 100003 <_start-0xe00005>,%d0
+  f0005a:	0800 0000      	btst #0,%d0
+  f0005e:	67b6           	beqs f00016 <main+0x2>
+  f00060:	207c 0010 0001 	moveal #1048577,%a0
+  f00066:	1010           	moveb %a0@,%d0
+  f00068:	0000 0001      	orib #1,%d0
+  f0006c:	1080           	moveb %d0,%a0@
+  f0006e:	1039 0010 0003 	moveb 100003 <_start-0xe00005>,%d0
+  f00074:	0800 0001      	btst #1,%d0
+  f00078:	67ac           	beqs f00026 <main+0x12>
+  f0007a:	207c 0010 0001 	moveal #1048577,%a0
+  f00080:	1010           	moveb %a0@,%d0
+  f00082:	0000 0002      	orib #2,%d0
+  f00086:	1080           	moveb %d0,%a0@
+  f00088:	1039 0010 0003 	moveb 100003 <_start-0xe00005>,%d0
+  f0008e:	0800 0002      	btst #2,%d0
+  f00092:	67a2           	beqs f00036 <main+0x22>
+  f00094:	207c 0010 0001 	moveal #1048577,%a0
+  f0009a:	1010           	moveb %a0@,%d0
+  f0009c:	0000 0004      	orib #4,%d0
+  f000a0:	1080           	moveb %d0,%a0@
+  f000a2:	1039 0010 0003 	moveb 100003 <_start-0xe00005>,%d0
+  f000a8:	0800 0003      	btst #3,%d0
+  f000ac:	6698           	bnes f00046 <main+0x32>
+  f000ae:	207c 0010 0001 	moveal #1048577,%a0
+  f000b4:	1010           	moveb %a0@,%d0
+  f000b6:	0200 fff7      	andib #-9,%d0
+  f000ba:	1080           	moveb %d0,%a0@
+  f000bc:	6096           	bras f00054 <main+0x40>
+
+Disassembly of section .data:
+
+00000000 <.data>:
+	...
+
+Disassembly of section .comment:
+
+00000000 <.comment>:
+   0:	4743           	.short 0x4743
+   2:	433a           	.short 0x433a
+   4:	2028 474e      	movel %a0@(18254),%d0
+   8:	5529 2031      	subqb #2,%a1@(8241)
+   c:	332e 322e      	movew %fp@(12846),%a1@-
+  10:	3000           	movew %d0,%d0
