@@ -20,8 +20,6 @@ module BusControl(
 
 ////////////////////////////////////////////////////
 
-// Stepper pause state.
-reg PAUSE_STATE;
 // Bootstrap read from PROM area.
 reg BOOTSTRAPPED;
 
@@ -127,10 +125,13 @@ assign DATA[15:0] = SIGNAL_READING ? { 8'b0, OUTPUT_SIGNAL, INPUT_SIGNAL_IN } : 
 
 ////////////////////////////////////////////////////
 
+// Stepper pause state.
+reg PAUSE_STATE;
+
 // DTACK control with stepper.
 always @ (posedge CPUCLK_IN) begin
 	// Not under pause.
-	if (PAUSE_STATE == 1'b0) begin
+	if (~PAUSE_STATE) begin
 		// Inactivated DTREQ.
 		if (~DTREQ) begin
 			// Negate DTACK.
