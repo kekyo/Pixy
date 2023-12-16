@@ -22,8 +22,10 @@ reg [7:0] RECEIVE_BUFFER;
 
 ////////////////////////////////////////////////////
 
+// SPI is MODE1, LSB first, Little endian.
+
 always @ (posedge SPICLK_IN, negedge SPISS_IN) begin
-	if (SPISS_IN == 1'd0) begin
+	if (~SPISS_IN) begin
 		SEND_BUFFER[47] <= 1'bz;
 		SPI_STATE <= 6'd0;
 	end else begin
@@ -51,33 +53,25 @@ end
 assign SPISO = SEND_BUFFER[0];
 
 always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
-	if (SPISS_IN == 1'd0) begin
+	if (~SPISS_IN) begin
 		RECEIVE_BUFFER <= 8'b0;
 	end else begin
 		case (SPI_STATE)
 			// Start.
-			6'd0:
+			6'd0:begin
 				RECEIVE_BUFFER <= 8'b0;
-			// Shift in the bits.
-			6'd1:
-				RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
-			6'd2:
-				RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
-			6'd3:
-				RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
-			6'd4:
-				RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
-			6'd5:
-				RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
-			6'd6:
-				RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
-			6'd7:
-				RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
+			end
 			// End.
 			6'd8:begin
 				// All bits received, apply to INPUT_SIGNAL.
 				// <= { SPISI_IN, RECEIVE_BUFFER[7:1] }[3:0]
 				INPUT_SIGNAL <= RECEIVE_BUFFER[4:1];
+			end
+			default:begin
+				// Shift in the bits.
+				if (SPI_STATE < 6'd8) begin
+					RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
+				end
 			end
 		endcase
     end

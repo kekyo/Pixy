@@ -76,7 +76,7 @@ wire DTREQ = RUN_IN & AS_IN & (UDS_IN | LDS_IN);
 wire WRLOWERREQ = DTREQ & WR_IN;
 
 // Exit from bootstrap mode.
-always @ (posedge MCLK_IN, negedge RUN_IN) begin
+always @ (negedge MCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		BOOTSTRAPPED <= 1'b0;
 	end else if (WRLOWERREQ & ADDRLOWER) begin
@@ -103,7 +103,7 @@ wire ADDRSIGNAL = DTREQ & LDS_IN & ADDRIO & (ADDR_IN[19:0] == 20'b1);
 reg SIGNAL_READING;
 
 // Output signal port. (0x00100001, bit7-4)
-always @ (posedge MCLK_IN, negedge RUN_IN) begin
+always @ (negedge MCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		OUTPUT_SIGNAL <= 4'b0;
 		SIGNAL_READING <= 1'b0;
@@ -128,7 +128,7 @@ assign DATA[15:0] = SIGNAL_READING ? { 8'b0, OUTPUT_SIGNAL, INPUT_SIGNAL_IN } : 
 reg PAUSE_STATE;
 
 // DTACK control with stepper.
-always @ (posedge MCLK_IN, negedge RUN_IN) begin
+always @ (negedge MCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		PAUSE_STATE <= 1'b0;
 	// Not under pause.
