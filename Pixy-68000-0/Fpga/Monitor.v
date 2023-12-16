@@ -1,4 +1,5 @@
 module Monitor(
+	input MCLK_IN,
 	input SPICLK_IN,
 	input SPISI_IN,
 	input SPISS_IN,
@@ -6,8 +7,7 @@ module Monitor(
 	input [15:0] DATA_IN,
 	input [3:0] OUTPUT_SIGNAL_IN,
 	output reg [3:0] INPUT_SIGNAL,
-	output SPISO
-);
+	output SPISO);
 
 ////////////////////////////////////////////////////
 
