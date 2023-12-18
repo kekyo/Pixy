@@ -89,9 +89,10 @@ static void outputSegments(uint32_t row0, uint32_t row1) {
 //#define SPI_SPEED 100000
 #define SW_BITS 0
 #define LED_BITS 5
+#define UART_SEND_BYTES 6
 
 static const SPISettings spiSettings(SPI_SPEED, LSBFIRST, SPI_MODE1);
-static uint8_t spiBuffer[6];
+static uint8_t spiBuffer[7];   // 56bits
 
 static bool resetting = false;
 
@@ -151,21 +152,17 @@ void loop() {
   }
 
   // Store switch bits into the SPI buffer.
+  memset(spiBuffer, 0, sizeof spiBuffer);
   spiBuffer[SW_BITS] =
     (digitalRead(SW0) ? 0x00 : 0x01) |
     (digitalRead(SW1) ? 0x00 : 0x02) |
     (digitalRead(SW2) ? 0x00 : 0x04) |
     (digitalRead(SW3) ? 0x00 : 0x08);
-  spiBuffer[1] = 0x00;
-  spiBuffer[2] = 0x00;
-  spiBuffer[3] = 0x00;
-  spiBuffer[4] = 0x00;
-  spiBuffer[5] = 0x00;
 
   // Polling by SPI.
   SPI.beginTransaction(spiSettings);
   digitalWrite(SPISS, LOW);
-  SPI.transfer(&spiBuffer, sizeof spiBuffer);
+  SPI.transfer(spiBuffer, sizeof spiBuffer);
   digitalWrite(SPISS, HIGH);
   SPI.endTransaction();
 
@@ -188,4 +185,10 @@ void loop() {
   digitalWrite(LED1, (outputSignal & 0x02) ? HIGH : LOW);
   digitalWrite(LED2, (outputSignal & 0x04) ? HIGH : LOW);
   digitalWrite(LED3, (outputSignal & 0x08) ? HIGH : LOW);
+
+  const uint8_t uartSendSize = spiBuffer[LED_BITS] >> 4;
+  if (uartSendSize) {
+    const uint8_t uartSendBytes = spiBuffer[UART_SEND_BYTES];
+    Serial.print(static_cast<char>(uartSendBytes));
+  }
 }
