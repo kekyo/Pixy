@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <TimerOne.h>
 #include <SPI.h>
 
 #define DIO0 PIN_PC0
@@ -25,7 +26,106 @@
 #define REQINT PIN_PD2
 #define PROGRAMN PIN_PD3
 
-static const byte digitPatterns[16] = {
+///////////////////////////////////////////////////////////
+
+class LedSegment
+{
+private:
+  static const uint8_t digitPatterns[16];
+
+  static inline void outputBits(uint8_t row0, uint8_t row1) {
+    for (int j = 0; j < 8; j++) {
+      digitalWrite(DIO0, (row0 & 0x80) ? HIGH : LOW);
+      digitalWrite(DIO1, (row1 & 0x80) ? HIGH : LOW);
+      digitalWrite(SCLK, LOW);
+      digitalWrite(SCLK, HIGH);
+      row0 <<= 1;
+      row1 <<= 1;
+    }
+  }
+
+  static inline void flush() {
+    digitalWrite(RCLK, LOW);
+    digitalWrite(RCLK, HIGH);
+  }
+
+  static inline void clear() {
+    outputBits(0, 0);
+    outputBits(0, 0);
+    flush();
+  }
+
+  uint8_t state;
+  uint8_t column;
+  uint8_t count;
+  uint16_t row0h;
+  uint16_t row1h;
+  uint32_t row0;
+  uint32_t row1;
+
+  void emitCurrent() {
+    // Makes value bits
+    uint8_t v0 = digitPatterns[row0h & 0x0f];
+    uint8_t v1 = digitPatterns[row1h & 0x0f];
+    outputBits(v0, v1);
+    // Makes column bits
+    outputBits(column, column);
+    row0h >>= 4;
+    row1h >>= 4;
+    column >>= 1;
+    flush();
+  }
+
+public:
+  LedSegment() :
+    state(0), column(0x80), count(0), row0h(0), row1h(0), row0(0), row1(0) {
+  }
+
+  inline void set(uint32_t row0, uint32_t row1) {
+    this->row0 = row0;
+    this->row1 = row1;
+  }
+
+  inline void emit() {
+    switch (state) {
+      // Draw upper 4 columns.
+      case 0:
+        // Emit to segments.
+        emitCurrent();
+        count++;
+        if (count >= 4) {
+          // To lower 4 columns.
+          column = 0x08;
+          row0h = (uint16_t)row0;
+          row1h = (uint16_t)row1;
+          count = 0;
+          state = 1;
+        }
+        break;
+      // Draw lower 4 columns.
+      case 1:
+        // Emit to segments.
+        emitCurrent();
+        count++;
+        if (count >= 4) {
+          state = 2;
+        }
+        break;
+      // Blanking.
+      default:
+        clear();
+        // To upper 4 columns.
+        column = 0x80;
+        row0h = (uint16_t)(row0 >> 16);
+        row1h = (uint16_t)(row1 >> 16);
+        count = 0;
+        state = 0;
+        break;
+    }
+  }
+};
+
+const uint8_t LedSegment::digitPatterns[16] = {
   B11000000,  // 0
   B11111001,  // 1
   B10100100,  // 2
@@ -46,47 +146,10 @@ static const byte digitPatterns[16] = {
 
 ///////////////////////////////////////////////////////////
 
-static void outputBits(byte row0, byte row1) {
-  for (int j = 0; j < 8; j++) {
-    digitalWrite(DIO0, (row0 & 0x80) ? HIGH : LOW);
-    digitalWrite(DIO1, (row1 & 0x80) ? HIGH : LOW);
-    digitalWrite(SCLK, LOW);
-    digitalWrite(SCLK, HIGH);
-    row0 <<= 1;
-    row1 <<= 1;
-  }
-}
-
-static void flush() {
-    digitalWrite(RCLK, LOW);
-    digitalWrite(RCLK, HIGH);
-}
-
-static void output4Segments(uint16_t row0, uint16_t row1, bool isHigh) {
-  byte column = isHigh ? 0x80 : 0x08;
-  for (int i = 0; i < 4; i++) {
-    // Makes value bits
-    byte v0 = digitPatterns[row0 & 0x0f];
-    byte v1 = digitPatterns[row1 & 0x0f];
-    outputBits(v0, v1);
-    // Makes column bits
-    outputBits(column, column);
-    row0 >>= 4;
-    row1 >>= 4;
-    column >>= 1;
-    flush();
-  }
-}
-
-static void outputSegments(uint32_t row0, uint32_t row1) {
-  output4Segments((row0 >> 16) & 0xffffffff, (row1 >> 16) & 0xffffffff, true);
-  output4Segments(row0 & 0xffffffff, row1 & 0xffffffff, false);
-}
-
-///////////////////////////////////////////////////////////
-
 #define SPI_SPEED 8000000
 //#define SPI_SPEED 100000
+#define TIMER_INTERVAL 2000  // usec
+
 #define SW_BITS 0
 #define UART_RECEIVE_BYTES 1
 #define LED_BITS 5
@@ -96,6 +159,12 @@ static const SPISettings spiSettings(SPI_SPEED, LSBFIRST, SPI_MODE1);
 static uint8_t spiBuffer[7];   // 56bits
 
 static bool resetting = false;
+
+static LedSegment ledSegment;
+
+static void timerHandler() {
+  ledSegment.emit();
+}
 
 // Setup.
 void setup() {
@@ -131,6 +200,9 @@ void setup() {
   digitalWrite(SPISS, HIGH);
 
   pinMode(PROGRAMN, INPUT);
+
+  Timer1.initialize(TIMER_INTERVAL);
+  Timer1.attachInterrupt(timerHandler);
 }
 
 ///////////////////////////////////////////////////////////
@@ -175,16 +247,9 @@ void loop() {
 
   // Extracts 68000 address and data bus bits.
   // It is little endian format.
-  const uint32_t addr =
-    spiBuffer[0] | ((uint32_t)spiBuffer[1] << 8) | ((uint32_t)spiBuffer[2] << 16);
-  const uint32_t data =
-    spiBuffer[3] | ((uint32_t)spiBuffer[4] << 8);
-
-  // Print to 8seg modules.
-  outputSegments(addr, data);
-  outputBits(0, 0);
-  outputBits(0, 0);
-  flush();
+  const uint32_t addr = spiBuffer[0] | ((uint32_t)spiBuffer[1] << 8) | ((uint32_t)spiBuffer[2] << 16);
+  const uint32_t data = spiBuffer[3] | ((uint32_t)spiBuffer[4] << 8);
+  ledSegment.set(addr, data);
 
   // Extracts output signals to drive LEDs.
   const uint8_t outputSignal = spiBuffer[LED_BITS];
