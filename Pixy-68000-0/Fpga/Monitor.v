@@ -9,9 +9,12 @@ module Monitor(
 	input [3:0] OUTPUT_SIGNAL_IN,
 	input UART_SEND_TRIGGER_IN,
 	input [7:0] UART_SEND_BYTE_IN,
+	input UART_RECEIVE_CAPTURE_IN,
 	output reg [3:0] INPUT_SIGNAL,
 	output SPISO,
-	output UART_SEND_BUSY);
+	output UART_SEND_BUSY,
+	output UART_RECEIVED,
+	output reg [7:0] UART_RECEIVE_BYTE);
 
 ////////////////////////////////////////////////////
 
@@ -26,6 +29,17 @@ always @ (posedge UART_SEND_TRIGGER_IN, negedge RUN_IN) begin
 	end else begin
 		UART_SEND_BYTE = UART_SEND_BYTE_IN;
 		UART_SEND_TRIGGER = ~UART_SEND_TRIGGER;
+	end
+end
+
+reg UART_RECEIVED_TRIGGER;
+reg UART_CAPTURED_TRIGGER;
+
+always @ (posedge UART_RECEIVE_CAPTURE_IN, negedge RUN_IN) begin
+	if (~RUN_IN) begin
+		UART_CAPTURED_TRIGGER <= UART_RECEIVED_TRIGGER;
+	end else begin
+		UART_CAPTURED_TRIGGER = ~UART_CAPTURED_TRIGGER;
 	end
 end
 
@@ -74,7 +88,7 @@ assign UART_SEND_BUSY = UART_SEND_TRIGGER ^ UART_SENT_TRIGGER;
 ////////////////////////////////////////////////////
 
 // SPI receiver bit shift buffer.
-reg [7:0] RECEIVE_BUFFER;
+reg [15:0] RECEIVE_BUFFER;
 
 always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
 	if (~SPISS_IN) begin
@@ -86,19 +100,25 @@ always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
 				RECEIVE_BUFFER <= 8'b0;
 			end
 			// End.
-			6'd8:begin
+			6'd16:begin
 				// All bits received, apply to INPUT_SIGNAL.
 				// <= { SPISI_IN, RECEIVE_BUFFER[7:1] }[3:0]
 				INPUT_SIGNAL <= RECEIVE_BUFFER[4:1];
+				UART_RECEIVE_BYTE = { SPISI_IN, RECEIVE_BUFFER[15:9] };
+				if (RECEIVE_BUFFER[5]) begin
+					UART_RECEIVED_TRIGGER = ~UART_RECEIVED_TRIGGER;
+				end
 			end
 			default:begin
 				// Shift in the bits.
-				if (SPI_STATE < 6'd8) begin
-					RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[7:1] };
+				if (SPI_STATE < 6'd16) begin
+					RECEIVE_BUFFER <= { SPISI_IN, RECEIVE_BUFFER[15:1] };
 				end
 			end
 		endcase
     end
 end
+
+assign UART_RECEIVED = UART_RECEIVED_TRIGGER ^ UART_CAPTURED_TRIGGER;
 
 endmodule

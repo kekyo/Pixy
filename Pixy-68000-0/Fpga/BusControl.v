@@ -9,6 +9,8 @@ module BusControl(
 	input LDS_IN,
 	input [3:0] INPUT_SIGNAL_IN,
 	input UART_SEND_BUSY_IN,
+	input UART_RECEIVED_IN,
+	input [7:0] UART_RECEIVE_BYTE_IN,
 	input [23:0] ADDR_IN,
 	inout [15:0] DATA,
 	output reg DTACK,
@@ -19,7 +21,8 @@ module BusControl(
 	output OE,
 	output reg [3:0] OUTPUT_SIGNAL,
 	output reg UART_SEND_TRIGGER,
-	output reg [7:0] UART_SEND_BYTE);
+	output reg [7:0] UART_SEND_BYTE,
+	output reg UART_RECEIVE_CAPTURE);
 
 ////////////////////////////////////////////////////
 
@@ -36,8 +39,9 @@ reg BOOTSTRAPPED;
 // +---------------+            +---------------+
 // |   (nothing)   |            |   (nothing)   | 
 // +---------------+            +---------------+
-// |  SPI UART DT  | 0x00100005 |  SPI UART DT  |
-// |  SPI UART ST  | 0x00100003 |  SPI UART ST  |
+// | SPI UART RECV | 0x00100007 | SPI UART RECV |
+// | SPI UART SEND | 0x00100005 | SPI UART SEND |
+// | SPI UART ST   | 0x00100003 | SPI UART ST   |
 // |  Signal I/O   | 0x00100001 |  Signal I/O   | 
 // +---------------+            +---------------+
 // |               | 0x000fffff |               |
@@ -53,8 +57,9 @@ reg BOOTSTRAPPED;
 // +---------------+
 // |   (nothing)   |
 // +---------------+
-// |  SPI UART DT  | 0x00100005
-// |  SPI UART ST  | 0x00100003
+// | SPI UART RECV | 0x00100007
+// | SPI UART SEND | 0x00100005
+// | SPI UART ST   | 0x00100003
 // |  Signal I/O   | 0x00100001
 // +---------------+
 // |               | 0x000fffff
@@ -108,6 +113,8 @@ assign OE = ASREQ & (PROMCS | SRAMCS) & ~WR_IN;
 
 wire ADDRIOUPPER = DTREQ & LDS_IN & ADDRIO & (ADDR_IN[19:4] == 16'b0);
 
+//---------------------
+
 wire ADDRSIGNAL = ADDRIOUPPER & (ADDR_IN[3:0] == 4'b0001);
 reg SIGNAL_READING;
 
@@ -131,6 +138,8 @@ end
 // I/O signal port. (Input signal is lower bit3-0)
 assign DATA[15:0] = SIGNAL_READING ? { 8'b0, OUTPUT_SIGNAL, INPUT_SIGNAL_IN } : 16'bz;
 
+//---------------------
+
 wire ADDRUARTST = ADDRIOUPPER & (ADDR_IN[3:0] == 4'b0011);
 reg UART_ST_READING;
 
@@ -148,34 +157,56 @@ always @ (negedge MCLK_IN, negedge RUN_IN) begin
 end
 
 // Input UART status port.
-assign DATA[15:0] = UART_ST_READING ? { 15'b0, UART_SEND_BUSY_IN } : 16'bz;
+assign DATA[15:0] = UART_ST_READING ? { 14'b0, UART_RECEIVED_IN, UART_SEND_BUSY_IN } : 16'bz;
 
-wire ADDRUARTDT = ADDRIOUPPER & (ADDR_IN[3:0] == 4'b0101);
-reg UART_DT_READING;
+//---------------------
 
-// I/O UART data port. (0x00100005)
+wire ADDRUARTSEND = ADDRIOUPPER & (ADDR_IN[3:0] == 4'b0101);
+reg UART_SEND_READING;
+
+// I/O UART send byte port. (0x00100005)
 always @ (negedge MCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		UART_SEND_BYTE <= 8'b0;
 		UART_SEND_TRIGGER <= 1'b0;
-		UART_DT_READING <= 1'b0;
-	end else if (ADDRUARTDT) begin
+		UART_SEND_READING <= 1'b0;
+	end else if (ADDRUARTSEND) begin
 		if (WR_IN) begin
 			UART_SEND_BYTE <= DATA[7:0];
 			UART_SEND_TRIGGER <= 1'b1;
-			UART_DT_READING <= 1'b0;
+			UART_SEND_READING <= 1'b0;
 		end else begin
 			UART_SEND_TRIGGER <= 1'b0;
-			UART_DT_READING <= 1'b1;
+			UART_SEND_READING <= 1'b1;
 		end
 	end else begin
 		UART_SEND_TRIGGER <= 1'b0;
-		UART_DT_READING <= 1'b0;
+		UART_SEND_READING <= 1'b0;
 	end
 end
 
-// I/O UART data port.
-assign DATA[15:0] = UART_DT_READING ? { 8'b0, UART_SEND_BYTE } : 16'bz;
+// I/O UART send byte port.
+assign DATA[15:0] = UART_SEND_READING ? { 8'b0, UART_SEND_BYTE } : 16'bz;
+
+//---------------------
+
+wire ADDRUARTRECV = ADDRIOUPPER & (ADDR_IN[3:0] == 4'b0111);
+
+// I/O UART receive byte port. (0x00100007)
+always @ (negedge MCLK_IN, negedge RUN_IN) begin
+	if (~RUN_IN) begin
+		UART_RECEIVE_CAPTURE <= 1'b0;
+	end else if (ADDRUARTRECV) begin
+		if (~WR_IN) begin
+			UART_RECEIVE_CAPTURE <= 1'b1;
+		end
+	end else begin
+		UART_RECEIVE_CAPTURE <= 1'b0;
+	end
+end
+
+// I/O UART receive byte port.
+assign DATA[15:0] = UART_RECEIVE_CAPTURE ? { 8'b0, UART_RECEIVE_BYTE_IN } : 16'bz;
 
 ////////////////////////////////////////////////////
 

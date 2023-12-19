@@ -15,10 +15,12 @@
 #define PIN_LED3 7
 
 #define UART_SEND_BUSY 0x01
+#define UART_RECEIVED 0x02
 
 static volatile uint8_t* const pSignal = (uint8_t*)0x00100001;
 static const volatile uint8_t* const pUartStatus = (uint8_t*)0x00100003;
-static volatile uint8_t* const pUartSendByte = (uint8_t*)0x00100005;
+static volatile uint8_t* const pUartSendData = (uint8_t*)0x00100005;
+static const volatile uint8_t* const pUartReceiveData = (uint8_t*)0x00100007;
 
 static inline void digitalWrite(uint8_t pin, uint8_t val) {
     if (val) {
@@ -38,7 +40,16 @@ static inline bool isSendBusy() {
 
 static inline void send(uint8_t ch) {
     while (isSendBusy());
-    *pUartSendByte = ch;
+    *pUartSendData = ch;
+}
+
+static inline bool isReceived() {
+    return *pUartStatus & UART_RECEIVED;
+}
+
+static inline uint8_t recv() {
+    while (!isReceived());
+    return *pUartReceiveData;
 }
 
 static void println(const char *pStr) {
@@ -46,16 +57,30 @@ static void println(const char *pStr) {
         send((uint8_t)*pStr);
         pStr++;
     }
+    send('\r');
     send('\n');
 }
 
+static bool partialState = false;
+
 void main() {
     while (1) {
-        if (digitalRead(PIN_SW0)) {
-            println("Hello Pixy!");
+        // Echo back
+        if (isReceived()) {
+            digitalWrite(PIN_LED0, HIGH);
+            send(recv());
+            digitalWrite(PIN_LED0, LOW);
         }
-        digitalWrite(PIN_LED1, digitalRead(PIN_SW1));
-        digitalWrite(PIN_LED2, digitalRead(PIN_SW2));
-        digitalWrite(PIN_LED3, digitalRead(PIN_SW3));
+
+        // Trigger print by SW0.
+        if (!partialState && digitalRead(PIN_SW0)) {
+            // Print out
+            digitalWrite(PIN_LED0, HIGH);
+            println("Hello Pixy!");
+            digitalWrite(PIN_LED0, LOW);
+            partialState = true;
+        } else if (partialState && !digitalRead(PIN_SW0)) {
+            partialState = false;
+        }
     }
 }

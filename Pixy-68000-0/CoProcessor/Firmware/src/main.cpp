@@ -88,6 +88,7 @@ static void outputSegments(uint32_t row0, uint32_t row1) {
 #define SPI_SPEED 8000000
 //#define SPI_SPEED 100000
 #define SW_BITS 0
+#define UART_RECEIVE_BYTES 1
 #define LED_BITS 5
 #define UART_SEND_BYTES 6
 
@@ -158,6 +159,12 @@ void loop() {
     (digitalRead(SW1) ? 0x00 : 0x02) |
     (digitalRead(SW2) ? 0x00 : 0x04) |
     (digitalRead(SW3) ? 0x00 : 0x08);
+
+  // Store serial one byte.
+  if (Serial.available()) {
+    spiBuffer[SW_BITS] |= 0x10;
+    spiBuffer[UART_RECEIVE_BYTES] = (uint8_t)Serial.read();
+  }
 
   // Polling by SPI.
   SPI.beginTransaction(spiSettings);
