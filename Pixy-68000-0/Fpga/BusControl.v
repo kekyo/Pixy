@@ -13,7 +13,8 @@ module BusControl(
 	input [7:0] UART_RECEIVE_BYTE_IN,
 	input [23:0] ADDR_IN,
 	inout [15:0] DATA,
-	output reg DTACK,
+	output DTACK,
+	output DTERROR,
 	output PROMCS0,
 	output PROMCS1,
 	output SRAMCS0,
@@ -136,7 +137,7 @@ always @ (negedge MCLK_IN, negedge RUN_IN) begin
 end
 
 // I/O signal port. (Input signal is lower bit3-0)
-assign DATA[15:0] = SIGNAL_READING ? { 8'b0, OUTPUT_SIGNAL, INPUT_SIGNAL_IN } : 16'bz;
+assign DATA[7:0] = SIGNAL_READING ? { OUTPUT_SIGNAL, INPUT_SIGNAL_IN } : 8'bz;
 
 //---------------------
 
@@ -157,7 +158,7 @@ always @ (negedge MCLK_IN, negedge RUN_IN) begin
 end
 
 // Input UART status port.
-assign DATA[15:0] = UART_ST_READING ? { 14'b0, UART_RECEIVED_IN, UART_SEND_BUSY_IN } : 16'bz;
+assign DATA[7:0] = UART_ST_READING ? { 6'b0, UART_RECEIVED_IN, UART_SEND_BUSY_IN } : 8'bz;
 
 //---------------------
 
@@ -186,7 +187,7 @@ always @ (negedge MCLK_IN, negedge RUN_IN) begin
 end
 
 // I/O UART send byte port.
-assign DATA[15:0] = UART_SEND_READING ? { 8'b0, UART_SEND_BYTE } : 16'bz;
+assign DATA[7:0] = UART_SEND_READING ? UART_SEND_BYTE : 8'bz;
 
 //---------------------
 
@@ -206,54 +207,24 @@ always @ (negedge MCLK_IN, negedge RUN_IN) begin
 end
 
 // I/O UART receive byte port.
-assign DATA[15:0] = UART_RECEIVE_CAPTURE ? { 8'b0, UART_RECEIVE_BYTE_IN } : 16'bz;
+assign DATA[7:0] = UART_RECEIVE_CAPTURE ? UART_RECEIVE_BYTE_IN : 8'bz;
 
 ////////////////////////////////////////////////////
 
-// Stepper pause state.
-reg PAUSE_STATE;
+// Bus error.
+wire ADDR_VALID = PROMCS0 | PROMCS1 | SRAMCS0 | SRAMCS1 | ADDRSIGNAL | ADDRUARTST | ADDRUARTSEND | ADDRUARTRECV;
+wire REQ_VALID = DTREQ & ADDR_VALID;
 
-// DTACK control with stepper.
-always @ (negedge MCLK_IN, negedge RUN_IN) begin
-	if (~RUN_IN) begin
-		PAUSE_STATE <= 1'b0;
-	// Not under pause.
-	end else if (~PAUSE_STATE) begin
-		// Inactivated DTREQ.
-		if (~DTREQ) begin
-			// Negate DTACK.
-			DTACK <= 1'b0;
-		// Activated DTREQ and into stepper mode.
-		end else if (STEPEN_IN) begin
-			// Pressed step switch.
-			if (STEP_IN) begin
-				// Assert DTACK.
-				DTACK <= 1'b1;
-				// Send to next state.
-				PAUSE_STATE <= 1'b1;
-			// Not clicked step switch.
-			end else begin
-				// Negate DTACK.
-				DTACK <= 1'b0;
-			end
-		// Activated DTREQ and not into stepper mode.
-		end else begin
-			// Assert DTACK.
-			DTACK <= 1'b1;
-		end
-	// Pausing.
-	end else begin
-		// Inactivated DTREQ.
-		if (~DTREQ) begin
-			// Negate DTACK.
-			DTACK <= 1'b0;
-		end
-		// Released step switch.
-		if (~DTACK & ~STEP_IN) begin
-			// Send to first state.
-			PAUSE_STATE <= 1'b0;
-		end
-	end
-end
+assign DTERROR = DTREQ & ~ADDR_VALID;
+
+////////////////////////////////////////////////////
+
+Stepper S(
+	.MCLK_IN(MCLK_IN),
+	.RUN_IN(RUN_IN),
+	.STEPEN_IN(STEPEN_IN),
+	.STEP_IN(STEP_IN),
+	.REQ_IN(REQ_VALID),
+	.ACK(DTACK));
 
 endmodule
