@@ -54,6 +54,7 @@ reg [5:0] SPI_STATE;
 
 // SPI sender bit shift buffer.
 reg [55:0] SEND_BUFFER;
+reg SEND_BUSY;
 
 always @ (posedge SPICLK_IN, negedge SPISS_IN) begin
 	if (~SPISS_IN) begin
@@ -65,11 +66,17 @@ always @ (posedge SPICLK_IN, negedge SPISS_IN) begin
 			6'd0:begin
 				if (UART_SEND_TRIGGER != UART_SENT_TRIGGER) begin
 					// Little endian, LSB first format.
-					SEND_BUFFER = { UART_SEND_BYTE, 4'b0001, OUTPUT_SIGNAL_IN, DATA_IN, ADDR_IN };
+					// MSB  ------------------------------------------------------------------------------------------------------------  LSB
+					//      | UART_SEND_BYTE[7:0] | 0 | 0 | RECV_BUSY | SEND_DATA(1)    | OUTPUT_SIGNAL[3:0] | DATA[15:0] | ADDR[23:0] |  ====>
+					//      ------------------------------------------------------------------------------------------------------------
+					SEND_BUFFER = { UART_SEND_BYTE, 2'b00, UART_RECEIVED, 1'b1, OUTPUT_SIGNAL_IN, DATA_IN, ADDR_IN };
 					UART_SENT_TRIGGER = ~UART_SENT_TRIGGER;
 				end else begin
 					// Little endian, LSB first format.
-					SEND_BUFFER <= { UART_SEND_BYTE, 4'b0000, OUTPUT_SIGNAL_IN, DATA_IN, ADDR_IN };
+					// MSB  ------------------------------------------------------------------------------------------------------------  LSB
+					//      | UART_SEND_BYTE[7:0] | 0 | 0 | RECV_BUSY | NO_SEND_DATA(0) | OUTPUT_SIGNAL[3:0] | DATA[15:0] | ADDR[23:0] |  ====>
+					//      ------------------------------------------------------------------------------------------------------------
+					SEND_BUFFER <= { UART_SEND_BYTE, 2'b00, UART_RECEIVED, 1'b0, OUTPUT_SIGNAL_IN, DATA_IN, ADDR_IN };
 				end
 				SPI_STATE <= SPI_STATE + 6'd1;
 			end
@@ -83,7 +90,7 @@ always @ (posedge SPICLK_IN, negedge SPISS_IN) begin
 end
 
 assign SPISO = SEND_BUFFER[0];
-assign UART_SEND_BUSY = UART_SEND_TRIGGER ^ UART_SENT_TRIGGER;
+assign UART_SEND_BUSY = (UART_SEND_TRIGGER ^ UART_SENT_TRIGGER) | SEND_BUSY;
 
 ////////////////////////////////////////////////////
 
@@ -102,12 +109,16 @@ always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
 			// End.
 			6'd16:begin
 				// All bits received, apply to INPUT_SIGNAL.
+				//  MSB  -------------------------------------------------------------------------------------------  LSB
+				// ====> | UART_RECEIVE_BYTE[7:0] | 0 | 0 | SEND_BUSY(0/1) | RECEIVE_DATA(0/1) | INPUT_SIGNAL[3:0] |
+				//       -------------------------------------------------------------------------------------------
 				// <= { SPISI_IN, RECEIVE_BUFFER[7:1] }[3:0]
 				INPUT_SIGNAL <= RECEIVE_BUFFER[4:1];
 				UART_RECEIVE_BYTE = { SPISI_IN, RECEIVE_BUFFER[15:9] };
-				if (RECEIVE_BUFFER[5]) begin
+				if (RECEIVE_BUFFER[5]) begin   // RECEIVE_DATA
 					UART_RECEIVED_TRIGGER = ~UART_RECEIVED_TRIGGER;
 				end
+				SEND_BUSY = RECEIVE_BUFFER[6];    // SEND_BUSY
 			end
 			default:begin
 				// Shift in the bits.

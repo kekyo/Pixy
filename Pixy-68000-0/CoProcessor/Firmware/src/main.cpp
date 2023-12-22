@@ -2,6 +2,18 @@
 #include <TimerOne.h>
 #include <SPI.h>
 
+//-----------------------------------
+
+#define BAUDRATE 38400
+//#define BAUDRATE 115200
+#define SPI_SPEED 8000000
+//#define SPI_SPEED 100000
+
+#define BITBANG 1
+#define LOCAL_ECHO 0
+
+//-----------------------------------
+
 #define DIO0 PIN_PC0
 #define DIO1 PIN_PC1
 #define SCLK PIN_PC2
@@ -35,7 +47,7 @@ private:
 
   static inline void outputBits(uint8_t row0, uint8_t row1) {
     for (int j = 0; j < 8; j++) {
-#if 1
+#if BITBANG
       const uint8_t bits = ((row0 & 0x80) >> 7) | ((row1 & 0x80) >> 6);
       PORTC = (PORTC & 0xfc) | bits;
       PORTC &= 0xfb;
@@ -52,13 +64,13 @@ private:
   }
 
   static inline void flush() {
-  #if 1
+#if BITBANG
     PORTC &= 0xf7;
     PORTC |= 0x08;
-  #else
+#else
     digitalWrite(RCLK, LOW);
     digitalWrite(RCLK, HIGH);
-  #endif
+#endif
   }
 
   static inline void clear() {
@@ -158,9 +170,7 @@ const uint8_t LedSegment::digitPatterns[16] = {
 
 ///////////////////////////////////////////////////////////
 
-#define SPI_SPEED 8000000
-//#define SPI_SPEED 100000
-#define TIMER_INTERVAL 2000  // usec
+#define TIMER_INTERVAL 1000  // usec
 
 #define SW_BITS 0
 #define UART_RECEIVE_BYTES 1
@@ -172,6 +182,10 @@ static uint8_t spiBuffer[7];   // 56bits
 
 static bool resetting = false;
 
+#if !LOCAL_ECHO
+static bool isReadyForReceive = false;
+#endif
+
 static LedSegment ledSegment;
 
 static void timerHandler() {
@@ -180,7 +194,7 @@ static void timerHandler() {
 
 // Setup.
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(BAUDRATE);
   Serial.println("setup()");
 
   SPI.begin();
@@ -221,6 +235,22 @@ void setup() {
 
 // Loop handler.
 void loop() {
+#if BITBANG
+  // Assert reset to FPGA (68000).
+  if (PIND & 0x80) {
+    if (!resetting) {
+      digitalWrite(PROGRAMN, LOW);
+      pinMode(PROGRAMN, OUTPUT);
+      resetting = true;
+    }
+  } else {
+    if (resetting) {
+      pinMode(PROGRAMN, INPUT);
+      digitalWrite(PROGRAMN, HIGH);
+      resetting = false;
+    }
+  }
+#else
   // Assert reset to FPGA (68000).
   if (!digitalRead(SW4)) {
     if (!resetting) {
@@ -235,30 +265,60 @@ void loop() {
       resetting = false;
     }
   }
+#endif
 
   // Store switch bits into the SPI buffer.
-  memset(spiBuffer, 0, sizeof spiBuffer);
+  //  MSB  -------------------------------------------------------------------------------------------  LSB
+  //       | UART_RECEIVE_BYTE[7:0] | 0 | 0 | SEND_BUSY(0/1) | RECEIVE_DATA(0/1) | INPUT_SIGNAL[3:0] | ====>
+  //       -------------------------------------------------------------------------------------------
+  //memset(spiBuffer, 0, sizeof spiBuffer);
   spiBuffer[SW_BITS] =
     (digitalRead(SW0) ? 0x00 : 0x01) |
     (digitalRead(SW1) ? 0x00 : 0x02) |
     (digitalRead(SW2) ? 0x00 : 0x04) |
     (digitalRead(SW3) ? 0x00 : 0x08);
 
-  // Store serial one byte.
-  if (Serial.available()) {
+#if LOCAL_ECHO
+  if (Serial.available() && Serial.availableForWrite()) {
+    const uint8_t uartSendBytes = (uint8_t)Serial.read();
+    Serial.print(static_cast<char>(uartSendBytes));
+  }
+#else
+  // Store serial one byte when 68000 is ready for receiving.
+  bool isSentThisIteration = false;
+  if (isReadyForReceive && Serial.available()) {
     spiBuffer[SW_BITS] |= 0x10;
     spiBuffer[UART_RECEIVE_BYTES] = (uint8_t)Serial.read();
+    isSentThisIteration = true;
+    isReadyForReceive = false;
+  }
+#endif
+
+  // Indicates send buffer availability.
+  if (!Serial.availableForWrite()) {
+    spiBuffer[SW_BITS] |= 0x20;    // SEND_BUSY
   }
 
   // Polling by SPI.
   SPI.beginTransaction(spiSettings);
+#if BITBANG
+  PORTB &= 0xfb;
+#else
   digitalWrite(SPISS, LOW);
+#endif
   SPI.transfer(spiBuffer, sizeof spiBuffer);
+#if BITBANG
+  PORTB |= 0x04;
+#else
   digitalWrite(SPISS, HIGH);
+#endif
   SPI.endTransaction();
 
   // Extracts 68000 address and data bus bits.
   // It is little endian format.
+  //  MSB  ------------------------------------------------------------------------------------------------------------  LSB
+  // ====> | UART_SEND_BYTE[7:0] | 0 | 0 | RECV_BUSY | SEND_DATA(1)    | OUTPUT_SIGNAL[3:0] | DATA[15:0] | ADDR[23:0] |
+  //       ------------------------------------------------------------------------------------------------------------
   const uint32_t addr = spiBuffer[0] | ((uint32_t)spiBuffer[1] << 8) | ((uint32_t)spiBuffer[2] << 16);
   const uint32_t data = spiBuffer[3] | ((uint32_t)spiBuffer[4] << 8);
   ledSegment.set(addr, data);
@@ -270,9 +330,17 @@ void loop() {
   digitalWrite(LED2, (outputSignal & 0x04) ? HIGH : LOW);
   digitalWrite(LED3, (outputSignal & 0x08) ? HIGH : LOW);
 
-  const uint8_t uartSendSize = spiBuffer[LED_BITS] >> 4;
-  if (uartSendSize) {
+#if !LOCAL_ECHO
+  // Skip checking when this iteration already sent data.
+  if (!isSentThisIteration) {
+    // Apply for receiving readiness on 68000.
+    isReadyForReceive = !(spiBuffer[LED_BITS] & 0x20);  // !RECV_BUSY
+  }
+
+  const bool isAvailableUartSendData = spiBuffer[LED_BITS] & 0x10;
+  if (isAvailableUartSendData) {
     const uint8_t uartSendBytes = spiBuffer[UART_SEND_BYTES];
     Serial.print(static_cast<char>(uartSendBytes));
   }
+#endif
 }
