@@ -35,18 +35,30 @@ private:
 
   static inline void outputBits(uint8_t row0, uint8_t row1) {
     for (int j = 0; j < 8; j++) {
+#if 1
+      const uint8_t bits = ((row0 & 0x80) >> 7) | ((row1 & 0x80) >> 6);
+      PORTC = (PORTC & 0xfc) | bits;
+      PORTC &= 0xfb;
+      PORTC |= 0x04;
+#else
       digitalWrite(DIO0, (row0 & 0x80) ? HIGH : LOW);
       digitalWrite(DIO1, (row1 & 0x80) ? HIGH : LOW);
       digitalWrite(SCLK, LOW);
       digitalWrite(SCLK, HIGH);
+#endif
       row0 <<= 1;
       row1 <<= 1;
     }
   }
 
   static inline void flush() {
+  #if 1
+    PORTC &= 0xf7;
+    PORTC |= 0x08;
+  #else
     digitalWrite(RCLK, LOW);
     digitalWrite(RCLK, HIGH);
+  #endif
   }
 
   static inline void clear() {
