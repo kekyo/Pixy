@@ -15,11 +15,11 @@ module BusControl(
 	inout [15:0] DATA,
 	output DTACK,
 	output DTERROR,
-	output PROMCS0,
-	output PROMCS1,
-	output SRAMCS0,
-	output SRAMCS1,
-	output OE,
+	output reg PROMCS0,
+	output reg PROMCS1,
+	output reg SRAMCS0,
+	output reg SRAMCS1,
+	output reg OE,
 	output reg [3:0] OUTPUT_SIGNAL,
 	output reg UART_SEND_TRIGGER,
 	output reg [7:0] UART_SEND_BYTE,
@@ -99,16 +99,36 @@ end
 
 ////////////////////////////////////////////////////
 
-// Flash PROM.
-assign PROMCS0 = ASREQ & PROMCS & UDS_IN;    // EVEN
-assign PROMCS1 = ASREQ & PROMCS & LDS_IN;    // ODD
-
-// SRAM.
-assign SRAMCS0 = ASREQ & SRAMCS & UDS_IN;    // EVEN
-assign SRAMCS1 = ASREQ & SRAMCS & LDS_IN;    // ODD
-
-// Output enable.
-assign OE = ASREQ & (PROMCS | SRAMCS) & ~WR_IN;
+// Flash ROM & SRAM access.
+always @ (negedge MCLK_IN, negedge RUN_IN) begin
+	if (~RUN_IN) begin
+		PROMCS0 <= 1'b0;
+		PROMCS1 <= 1'b0;
+		SRAMCS0 <= 1'b0;
+		SRAMCS1 <= 1'b0;
+		OE <= 1'b0;
+	// Flash PROM.
+	end else if (ASREQ & PROMCS) begin
+		PROMCS0 <= UDS_IN;    // EVEN
+		PROMCS1 <= LDS_IN;    // ODD
+		OE <= ~WR_IN;
+		SRAMCS0 <= 1'b0;
+		SRAMCS1 <= 1'b0;
+	// SRAM.
+	end else if (ASREQ & SRAMCS) begin
+		SRAMCS0 <= UDS_IN;    // EVEN
+		SRAMCS1 <= LDS_IN;    // ODD
+		OE <= ~WR_IN;
+		PROMCS0 <= 1'b0;
+		PROMCS1 <= 1'b0;
+	end else begin
+		PROMCS0 <= 1'b0;
+		PROMCS1 <= 1'b0;
+		SRAMCS0 <= 1'b0;
+		SRAMCS1 <= 1'b0;
+		OE <= 1'b0;
+	end
+end
 
 ////////////////////////////////////////////////////
 
