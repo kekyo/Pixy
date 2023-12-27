@@ -18,7 +18,7 @@
 #define UART_RECEIVED 0x02
 
 static volatile uint8_t* const pSignal = (uint8_t*)0x00100001;
-static const volatile uint8_t* const pUartStatus = (uint8_t*)0x00100003;
+static const volatile uint8_t* const pUartControl = (uint8_t*)0x00100003;
 static volatile uint8_t* const pUartSendData = (uint8_t*)0x00100005;
 static const volatile uint8_t* const pUartReceiveData = (uint8_t*)0x00100007;
 
@@ -35,7 +35,7 @@ static inline int digitalRead(uint8_t pin) {
 }
 
 static inline bool isSendBusy() {
-    return *pUartStatus & UART_SEND_BUSY;
+    return *pUartControl & UART_SEND_BUSY;
 }
 
 static inline void send(uint8_t ch) {
@@ -44,7 +44,7 @@ static inline void send(uint8_t ch) {
 }
 
 static inline bool isReceived() {
-    return *pUartStatus & UART_RECEIVED;
+    return *pUartControl & UART_RECEIVED;
 }
 
 static inline uint8_t recv() {

@@ -9,10 +9,8 @@ module Reset(
 // Reset waiting counter.
 reg [16:0] RESET_COUNT;
 
-////////////////////////////////////////////////////
-
 // Reset control.
-always @ (negedge MCLK_IN) begin
+always @ (posedge MCLK_IN) begin
     if (RESET_COUNT == 17'd100000) begin    // 1us/1MHz=100000 --> 100ms
 		RESET <= 1'b0;
 		HALT <= 1'b0;

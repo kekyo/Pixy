@@ -9,6 +9,7 @@ module Main(
 	input SPISI,
 	input STEPEN_n,
 	input STEP_n,
+	input FC0, input FC1, input FC2,
 	input A0, input A1, input A2, input A3,
 	input A4, input A5, input A6, input A7,
 	input A8, input A9, input A10, input A11,
@@ -45,6 +46,7 @@ wire LDS = ~LDS_n;
 wire WR = ~RW;
 wire STEPEN = ~STEPEN_n;
 wire STEP = ~STEP_n;
+wire [2:0] FC = { FC2, FC1, FC0 };
 wire [23:0] ADDR = { A23, A22, A21, A20, A19, A18, A17, A16, A15, A14, A13, A12, A11, A10, A9, A8, A7, A6, A5, A4, A3, A2, A1, A0 };
 wire [15:0] DATA = { D15, D14, D13, D12, D11, D10, D9, D8, D7, D6, D5, D4, D3, D2, D1, D0 };
 wire RESET;
@@ -72,7 +74,7 @@ wire UART_RECEIVE_CAPTURE;
 
 ClockDivider CD(
 	.MCLK_IN(MCLK),
-	.CPUCLK_OUT(CPUCLK));
+	.CPUCLK(CPUCLK));
 	
 Reset R(
 	.MCLK_IN(MCLK),
@@ -82,6 +84,7 @@ Reset R(
 
 BusControl BC(
 	.MCLK_IN(MCLK),
+	.CPUCLK_IN(CPUCLK),
 	.STEPEN_IN(STEPEN),
 	.STEP_IN(STEP),
 	.RUN_IN(RUN),
@@ -89,19 +92,20 @@ BusControl BC(
 	.WR_IN(WR),
 	.UDS_IN(UDS),
 	.LDS_IN(LDS),
+	.STATUS_CODE_IN(FC),
 	.INPUT_SIGNAL_IN(INPUT_SIGNAL),
 	.UART_SEND_BUSY_IN(UART_SEND_BUSY),
 	.UART_RECEIVED_IN(UART_RECEIVED),
 	.UART_RECEIVE_BYTE_IN(UART_RECEIVE_BYTE),
 	.ADDR_IN(ADDR),
 	.DATA(DATA),
-	.DTACK(DTACK),
-	.DTERROR(BERR),
-	.PROMCS0(PROMCS0),
-	.PROMCS1(PROMCS1),
-	.SRAMCS0(SRAMCS0),
-	.SRAMCS1(SRAMCS1),
-	.OE(OE),
+	.DATA_ACK(DTACK),
+	.BUS_ERROR(BERR),
+	.PROM_CS0(PROMCS0),
+	.PROM_CS1(PROMCS1),
+	.SRAM_CS0(SRAMCS0),
+	.SRAM_CS1(SRAMCS1),
+	.OUTPUT_ENABLE(OE),
 	.OUTPUT_SIGNAL(OUTPUT_SIGNAL),
 	.UART_SEND_TRIGGER(UART_SEND_TRIGGER),
 	.UART_SEND_BYTE(UART_SEND_BYTE),

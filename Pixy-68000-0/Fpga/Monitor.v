@@ -27,8 +27,8 @@ always @ (posedge UART_SEND_TRIGGER_IN, negedge RUN_IN) begin
 		UART_SEND_TRIGGER <= UART_SENT_TRIGGER;
 		UART_SEND_BYTE <= 8'b0;
 	end else begin
-		UART_SEND_BYTE = UART_SEND_BYTE_IN;
-		UART_SEND_TRIGGER = ~UART_SEND_TRIGGER;
+		UART_SEND_BYTE = UART_SEND_BYTE_IN;      // Sequence 1
+		UART_SEND_TRIGGER = ~UART_SEND_TRIGGER;  // Sequence 2
 	end
 end
 
@@ -69,8 +69,8 @@ always @ (posedge SPICLK_IN, negedge SPISS_IN) begin
 					// MSB  ------------------------------------------------------------------------------------------------------------  LSB
 					//      | UART_SEND_BYTE[7:0] | 0 | 0 | RECV_BUSY | SEND_DATA(1)    | OUTPUT_SIGNAL[3:0] | DATA[15:0] | ADDR[23:0] |  ====>
 					//      ------------------------------------------------------------------------------------------------------------
-					SEND_BUFFER = { UART_SEND_BYTE, 2'b00, UART_RECEIVED, 1'b1, OUTPUT_SIGNAL_IN, DATA_IN, ADDR_IN };
-					UART_SENT_TRIGGER = ~UART_SENT_TRIGGER;
+					SEND_BUFFER = { UART_SEND_BYTE, 2'b00, UART_RECEIVED, 1'b1, OUTPUT_SIGNAL_IN, DATA_IN, ADDR_IN };   // Sequence 1
+					UART_SENT_TRIGGER = ~UART_SENT_TRIGGER;   // Sequence 2
 				end else begin
 					// Little endian, LSB first format.
 					// MSB  ------------------------------------------------------------------------------------------------------------  LSB
@@ -114,11 +114,11 @@ always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
 				//       -------------------------------------------------------------------------------------------
 				// <= { SPISI_IN, RECEIVE_BUFFER[7:1] }[3:0]
 				INPUT_SIGNAL <= RECEIVE_BUFFER[4:1];
-				UART_RECEIVE_BYTE = { SPISI_IN, RECEIVE_BUFFER[15:9] };
+				UART_RECEIVE_BYTE = { SPISI_IN, RECEIVE_BUFFER[15:9] };   // Sequence 1
 				if (RECEIVE_BUFFER[5]) begin   // RECEIVE_DATA
-					UART_RECEIVED_TRIGGER = ~UART_RECEIVED_TRIGGER;
+					UART_RECEIVED_TRIGGER = ~UART_RECEIVED_TRIGGER;       // Sequence 2
 				end
-				SEND_BUSY = RECEIVE_BUFFER[6];    // SEND_BUSY
+				SEND_BUSY = RECEIVE_BUFFER[6];    // SEND_BUSY            // Sequence 3
 			end
 			default:begin
 				// Shift in the bits.
