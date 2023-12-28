@@ -10,6 +10,7 @@ reg [3:0] COUNT;
 always @ (posedge MCLK_IN) begin
     COUNT = COUNT + 4'd1;
     if (COUNT == 4'd1) begin
+    //if (COUNT == 4'd15) begin
         COUNT <= 4'd0;
         CPUCLK <= ~CPUCLK;
     end

@@ -16,7 +16,9 @@ module BusControl(
 	input [23:0] ADDR_IN,
 	inout [15:0] DATA,
 	output DATA_ACK,
+	output INT_AUTOVEC_ACK,
 	output BUS_ERROR,
+	output [2:0] INT_LEVEL,
 	output reg PROM_CS0,
 	output reg PROM_CS1,
 	output reg SRAM_CS0,
@@ -70,6 +72,8 @@ wire ADDRLOWER = ADDR_IN[23:20] == 4'b0000;
 wire ADDRIO = ADDR_IN[23:20] == 20'b0001;
 wire ADDRUPPER = ADDR_IN[23:20] == 4'b1111;
 
+wire INT_ACK_STATUS = STATUS_CODE_IN == 3'b111;
+
 ////////////////////////////////////////////////////
 
 wire MEMORY_DATA_STROBE = LDS_IN | UDS_IN;
@@ -78,7 +82,7 @@ wire MEMORY_DATA_STROBE = LDS_IN | UDS_IN;
 reg BOOTSTRAPPED;
 
 // Flash ROM & SRAM access.
-always @ (negedge MCLK_IN, negedge RUN_IN) begin
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		PROM_CS0 <= 1'b0;
 		PROM_CS1 <= 1'b0;
@@ -86,7 +90,7 @@ always @ (negedge MCLK_IN, negedge RUN_IN) begin
 		SRAM_CS1 <= 1'b0;
 		OUTPUT_ENABLE <= 1'b0;
 		BOOTSTRAPPED <= 1'b0;
-	end else if (AS_IN & MEMORY_DATA_STROBE) begin
+	end else if (AS_IN & MEMORY_DATA_STROBE & ~INT_ACK_STATUS) begin
 		// Lower address (0x00000000 - 0x000fffff)
 		if (ADDRLOWER) begin
 			// SRAM (Bootstrapped or write)
@@ -141,12 +145,12 @@ reg SIGNAL_CS;
 reg SIGNAL_READING;
 
 // SPI signal port. (0x00100001)
-always @ (negedge MCLK_IN, negedge RUN_IN) begin
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		OUTPUT_SIGNAL <= 4'b0;
 		SIGNAL_CS <= 1'b0;
 		SIGNAL_READING <= 1'b0;
-	end else if (AS_IN & IO_DATA_STROBE) begin
+	end else if (AS_IN & IO_DATA_STROBE & ~INT_ACK_STATUS) begin
 		if (ADDRSIGNAL) begin
 			if (WR_IN) begin
 				SIGNAL_READING = 1'b0;      // Sequence 0
@@ -175,11 +179,11 @@ reg UART_CONTROL_CS;
 reg UART_CONTROL_READING;
 
 // SPI UART control port. (0x00100003)
-always @ (negedge MCLK_IN, negedge RUN_IN) begin
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		UART_CONTROL_CS <= 1'b0;
 		UART_CONTROL_READING <= 1'b0;
-	end else if (AS_IN & IO_DATA_STROBE) begin
+	end else if (AS_IN & IO_DATA_STROBE & ~INT_ACK_STATUS) begin
 		if (ADDRUARTCONT) begin
 			// Write is invalid.
 			if (WR_IN) begin
@@ -209,13 +213,13 @@ reg UART_SEND_CS;
 reg UART_SEND_READING;
 
 // SPI UART send byte port. (0x00100005)
-always @ (negedge MCLK_IN, negedge RUN_IN) begin
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		UART_SEND_BYTE <= 8'b0;
 		UART_SEND_TRIGGER <= 1'b0;
 		UART_SEND_CS <= 1'b0;
 		UART_SEND_READING <= 1'b0;
-	end else if (AS_IN & IO_DATA_STROBE) begin
+	end else if (AS_IN & IO_DATA_STROBE & ~INT_ACK_STATUS) begin
 		if (ADDRUARTSEND) begin
 			if (WR_IN) begin
 				UART_SEND_READING <= 1'b0;
@@ -249,11 +253,11 @@ reg UART_RECEIVE_CS;
 reg UART_RECEIVE_NOT_SELECTED;
 
 // SPI UART receive byte port. (0x00100007)
-always @ (negedge MCLK_IN, negedge RUN_IN) begin
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		UART_RECEIVE_CAPTURE <= 1'b0;
 		UART_RECEIVE_CS <= 1'b0;
-	end else if (AS_IN & IO_DATA_STROBE) begin
+	end else if (AS_IN & IO_DATA_STROBE & ~INT_ACK_STATUS) begin
 		if (ADDRUARTRECV) begin
 			// Write is invalid.
 			if (WR_IN) begin
@@ -276,16 +280,32 @@ end
 // Read SPI UART receive byte port.
 assign DATA[7:0] = UART_RECEIVE_CAPTURE ? UART_RECEIVE_BYTE_IN : 8'bz;
 
+//---------------------
+
+// SPI interrupt requests.
+reg SPI_INT_REQ;
+
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
+	if (~RUN_IN) begin
+		SPI_INT_REQ <= 1'b0;
+	end else begin
+		SPI_INT_REQ <= UART_RECEIVED_IN;
+	end
+end
+
 ////////////////////////////////////////////////////
 
-wire INT_ACK_STATUS = STATUS_CODE_IN == 3'b111;
+assign INT_LEVEL[0] = SPI_INT_REQ;
+assign INT_LEVEL[1] = 1'b0;
+assign INT_LEVEL[2] = 1'b0;
+
 wire INT_DATA_STROBE = UDS_IN & LDS_IN;
 wire ADDRINT1 = ADDR_IN[3:1] == 3'b001;
 
 reg INT_CS;
 
 // Interrupt acknowledge.
-always @ (negedge MCLK_IN, negedge RUN_IN) begin
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		INT_CS <= 1'b0;
 	end else if (AS_IN & INT_DATA_STROBE) begin
@@ -306,6 +326,9 @@ end
 wire ADDR_VALID = PROM_CS0 | PROM_CS1 | SRAM_CS0 | SRAM_CS1 | SIGNAL_CS | UART_CONTROL_CS | UART_SEND_CS | UART_RECEIVE_CS;
 wire REQ_VALID = ADDR_VALID | INT_CS;
 
+// Handles step execution mode.
+wire ENABLE_EXECUTE;
+
 Stepper S(
 	.MCLK_IN(MCLK_IN),
 	.CPUCLK_IN(CPUCLK_IN),
@@ -313,10 +336,12 @@ Stepper S(
 	.STEPEN_IN(STEPEN_IN),
 	.STEP_IN(STEP_IN),
 	.ENABLE_IN(REQ_VALID),
-	.ENABLE_EXECUTE(DATA_ACK));
+	.ENABLE_EXECUTE(ENABLE_EXECUTE));
+
+assign DATA_ACK = ENABLE_EXECUTE & ADDR_VALID;
+assign INT_AUTOVEC_ACK = ENABLE_EXECUTE & INT_CS;
 
 // Bus error.
-//BUS_ERROR <= ~ADDR_VALID & DATA_STROBE;
-assign BUS_ERROR = 1'b0;
+assign BUS_ERROR = (LDS_IN | UDS_IN) & ~REQ_VALID;
 
 endmodule

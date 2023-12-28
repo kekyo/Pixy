@@ -54,9 +54,7 @@ wire HALT;
 wire DTACK;
 wire BERR;
 wire BR;
-wire IPL0;
-wire IPL1;
-wire IPL2;
+wire [2:0] IPL;
 wire AVEC;
 wire PROMCS0;
 wire PROMCS1;
@@ -100,7 +98,9 @@ BusControl BC(
 	.ADDR_IN(ADDR),
 	.DATA(DATA),
 	.DATA_ACK(DTACK),
+	.INT_AUTOVEC_ACK(AVEC),
 	.BUS_ERROR(BERR),
+	.INT_LEVEL(IPL),
 	.PROM_CS0(PROMCS0),
 	.PROM_CS1(PROMCS1),
 	.SRAM_CS0(SRAMCS0),
@@ -130,10 +130,6 @@ Monitor M(
 	.UART_RECEIVE_BYTE(UART_RECEIVE_BYTE));
 
 assign BR = 0;
-assign IPL0 = 0;
-assign IPL1 = 0;
-assign IPL2 = 0;
-assign AVEC = 0;
 
 assign DTACK_n = ~DTACK;
 assign RESET_n = ~RESET;
@@ -141,9 +137,9 @@ assign HALT_n = ~HALT;
 assign DTACK_n = ~DTACK;
 assign BERR_n = ~BERR;
 assign BR_n = ~BR;
-assign IPL0_n = ~IPL0;
-assign IPL1_n = ~IPL1;
-assign IPL2_n = ~IPL2;
+assign IPL0_n = ~IPL[0];
+assign IPL1_n = ~IPL[1];
+assign IPL2_n = ~IPL[2];
 assign AVEC_n = ~AVEC;
 assign SRAMCS0_n = ~SRAMCS0;
 assign SRAMCS1_n = ~SRAMCS1;

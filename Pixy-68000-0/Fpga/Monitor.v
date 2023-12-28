@@ -39,7 +39,7 @@ always @ (posedge UART_RECEIVE_CAPTURE_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		UART_CAPTURED_TRIGGER <= UART_RECEIVED_TRIGGER;
 	end else begin
-		UART_CAPTURED_TRIGGER = ~UART_CAPTURED_TRIGGER;
+		UART_CAPTURED_TRIGGER <= ~UART_CAPTURED_TRIGGER;
 	end
 end
 
@@ -99,12 +99,12 @@ reg [15:0] RECEIVE_BUFFER;
 
 always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
 	if (~SPISS_IN) begin
-		RECEIVE_BUFFER <= 8'b0;
+		RECEIVE_BUFFER <= 16'b0;
 	end else begin
 		case (SPI_STATE)
 			// Start.
 			6'd0:begin
-				RECEIVE_BUFFER <= 8'b0;
+				RECEIVE_BUFFER <= 16'b0;
 			end
 			// End.
 			6'd16:begin
