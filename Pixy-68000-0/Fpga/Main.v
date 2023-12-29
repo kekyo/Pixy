@@ -49,6 +49,8 @@ wire STEP = ~STEP_n;
 wire [2:0] FC = { FC2, FC1, FC0 };
 wire [23:0] ADDR = { A23, A22, A21, A20, A19, A18, A17, A16, A15, A14, A13, A12, A11, A10, A9, A8, A7, A6, A5, A4, A3, A2, A1, A0 };
 wire [15:0] DATA = { D15, D14, D13, D12, D11, D10, D9, D8, D7, D6, D5, D4, D3, D2, D1, D0 };
+
+wire TIMERCLK;
 wire RESET;
 wire HALT;
 wire DTACK;
@@ -72,7 +74,8 @@ wire UART_RECEIVE_CAPTURE;
 
 ClockDivider CD(
 	.MCLK_IN(MCLK),
-	.CPUCLK(CPUCLK));
+	.CPUCLK(CPUCLK),
+	.TIMERCLK(TIMERCLK));
 	
 Reset R(
 	.MCLK_IN(MCLK),
@@ -83,6 +86,7 @@ Reset R(
 BusControl BC(
 	.MCLK_IN(MCLK),
 	.CPUCLK_IN(CPUCLK),
+	.TIMERCLK_IN(TIMERCLK),
 	.STEPEN_IN(STEPEN),
 	.STEP_IN(STEP),
 	.RUN_IN(RUN),

@@ -22,13 +22,25 @@
 #define UART_ENABLE_SEND_INT 0x04
 #define UART_ENABLE_RECEIVE_INT 0x08
 
+#define TIMER_ENABLE_INT 0x01
+#define TIMER_REACHED 0x02
+
+//---------------------------------------
+
 extern void __cli();
 extern void __sti();
+
+//---------------------------------------
 
 static volatile uint8_t* const pSignal = (uint8_t*)0x00100001;
 static volatile uint8_t* const pUartControl = (uint8_t*)0x00100003;
 static volatile uint8_t* const pUartSendData = (uint8_t*)0x00100005;
 static const volatile uint8_t* const pUartReceiveData = (uint8_t*)0x00100007;
+
+static volatile uint8_t* const pTimerControl = (uint8_t*)0x00100009;
+static const volatile uint16_t* const pTimerCount = (uint16_t*)0x00100010;
+
+//---------------------------------------
 
 static uint8_t receiveBuffer[RECEIVE_BUFFER];
 static uint16_t receiveWritePointer = 0;
@@ -39,6 +51,7 @@ static uint16_t sendWritePointer = 0;
 static uint16_t sendReadPointer = 0;
 
 static inline void digitalWrite(uint8_t pin, uint8_t val) {
+    // TODO: save IPL
     if (val) {
         *pSignal |= 0x01 << pin;
     } else {
@@ -113,10 +126,27 @@ static void println(const char *pStr) {
     __sti();
 }
 
+//---------------------------------------
+
+static inline void enableTimerInterrupt() {
+    __cli();
+    *pTimerControl &= ~TIMER_REACHED;
+    *pTimerControl |= TIMER_ENABLE_INT;
+    __sti();
+}
+
+static inline uint16_t getFreeRunningCounter() {
+    return *pTimerCount;
+}
+
+///////////////////////////////////////////////////////////////
+
 static bool partialState = false;
 
 void main() {
     enableUartInterrupt();
+    enableTimerInterrupt();
+
     while (1) {
         // Echo back
         if (isReceived()) {
@@ -138,11 +168,20 @@ void main() {
     }
 }
 
-//-------------------------------------------------------------
+///////////////////////////////////////////////////////////////
 
 __attribute__((interrupt_handler))
 static void irq_handler_error() {
     digitalWrite(PIN_LED0, HIGH);
+}
+
+static uint8_t count;
+
+__attribute__((interrupt_handler))
+static void irq_handler_timer_reached() {
+    *pTimerControl &= ~TIMER_REACHED;
+    count++;
+    digitalWrite(PIN_LED2, count >> 7);
 }
 
 __attribute__((interrupt_handler))
@@ -191,7 +230,7 @@ void (* const vectors[])(void) =
     irq_handler_error,      // 22: (Reserved)
     irq_handler_error,      // 23: (Reserved)
     irq_handler_error,      // 24: Sprious interrupt
-    irq_handler_error,            // 25: Level 1 interrupt autovector
+    irq_handler_timer_reached,    // 25: Level 1 interrupt autovector (Timer 1kHz)
     irq_handler_uart_sent,        // 26: Level 2 interrupt autovector (UART sent)
     irq_handler_uart_received,    // 27: Level 3 interrupt autovector (UART received)
     irq_handler_error,            // 28: Level 4 interrupt autovector

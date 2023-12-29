@@ -1,6 +1,7 @@
 module BusControl(
 	input MCLK_IN,
 	input CPUCLK_IN,
+	input TIMERCLK_IN,
 	input STEPEN_IN,
 	input STEP_IN,
 	input RUN_IN,
@@ -39,6 +40,7 @@ module BusControl(
 // +---------------+            +---------------+
 // |   (nothing)   |            |   (nothing)   | 
 // +---------------+            +---------------+
+// | TIMER CONT    | 0x00100009 | TIMER CONT    |
 // | SPI UART RECV | 0x00100007 | SPI UART RECV |
 // | SPI UART SEND | 0x00100005 | SPI UART SEND |
 // | SPI UART CONT | 0x00100003 | SPI UART CONT |
@@ -57,6 +59,7 @@ module BusControl(
 // +---------------+
 // |   (nothing)   |
 // +---------------+
+// | TIMER CONT    | 0x00100009
 // | SPI UART RECV | 0x00100007
 // | SPI UART SEND | 0x00100005
 // | SPI UART CONT | 0x00100003
@@ -299,7 +302,123 @@ always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
 	end else begin
 		UART_RECEIVE_INT_REQ <= UART_ENABLE_RECEIVE_INT & UART_RECEIVED_IN;
 		UART_SEND_INT_REQ <= UART_ENABLE_SEND_INT & ~UART_SEND_BUSY_IN;
-		//UART_SEND_INT_REQ <= UART_ENABLE_SEND_INT & ~UART_SEND_TRIGGER;
+	end
+end
+
+////////////////////////////////////////////////////
+
+wire ADDRIOTIMER = ADDRIO & (ADDR_IN[19:4] == 16'b0000000000000000);
+
+//---------------------
+
+reg [15:0] TIMER_COUNT;
+reg [15:0] TIMER_NEXT_COUNT;
+reg TIMER_REACHED_TRIGGER;
+
+// TIMERCLK = 1MHz
+always @ (posedge TIMERCLK_IN, negedge RUN_IN) begin
+	if (~RUN_IN) begin
+		TIMER_COUNT <= 16'd0;
+		TIMER_NEXT_COUNT <= 16'd1000;   // 1kHz
+		TIMER_REACHED_TRIGGER <= 1'b0;
+	end else if (TIMER_COUNT == TIMER_NEXT_COUNT) begin
+		TIMER_NEXT_COUNT <= TIMER_NEXT_COUNT + 16'd1000;   // 1kHz
+		TIMER_COUNT <= TIMER_COUNT + 16'd1;
+		TIMER_REACHED_TRIGGER <= ~TIMER_REACHED_TRIGGER;
+	end else begin
+		TIMER_COUNT <= TIMER_COUNT + 16'd1;
+	end
+end
+
+//---------------------
+
+wire ADDRTIMERCONT = ADDRIOTIMER & (ADDR_IN[3:0] == 4'b1001);
+reg TIMER_CONTROL_CS;
+reg TIMER_CONTROL_READING;
+reg TIMER_ENABLE_INT;
+reg TIMER_COUNT_CAPTURED;
+
+// Timer control port. (0x00100009)
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
+	if (~RUN_IN) begin
+		TIMER_CONTROL_CS <= 1'b0;
+		TIMER_CONTROL_READING <= 1'b0;
+		TIMER_ENABLE_INT <= 1'b0;
+		TIMER_COUNT_CAPTURED <= 1'b0;
+	end else if (AS_IN & IO_DATA_STROBE & ~INT_ACK_CODE) begin
+		if (ADDRTIMERCONT) begin
+			if (WR_IN) begin
+				TIMER_CONTROL_READING = 1'b0;      // Sequence 0
+				TIMER_ENABLE_INT = DATA[0];        // Sequnece 1
+				if (~DATA[1] & (TIMER_REACHED_TRIGGER ^ TIMER_COUNT_CAPTURED)) begin
+					TIMER_COUNT_CAPTURED = ~TIMER_COUNT_CAPTURED;   // Sequence 2
+				end
+			end else begin
+				TIMER_CONTROL_READING = 1'b1;
+			end
+			TIMER_CONTROL_CS = 1'b1;
+		end else begin
+			TIMER_CONTROL_CS <= 1'b0;
+			TIMER_CONTROL_READING <= 1'b0;
+		end
+	end else begin
+		TIMER_CONTROL_CS <= 1'b0;
+		TIMER_CONTROL_READING <= 1'b0;
+	end
+end
+
+// Read Timer control port.
+assign DATA[7:0] = TIMER_CONTROL_READING ? { 6'b0, (TIMER_REACHED_TRIGGER ^ TIMER_COUNT_CAPTURED), TIMER_ENABLE_INT } : 8'bz;
+
+//---------------------
+
+wire ADDRTIMERCOUNT = ADDRIOTIMER & (ADDR_IN[3:0] == 4'b1010);
+reg TIMER_COUNT_CS;
+reg TIMER_COUNT_READING;
+reg [15:0] TIMER_CAPTURED_COUNT;
+
+// Timer count port. (0x00100010, 0x00100011)
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
+	if (~RUN_IN) begin
+		TIMER_COUNT_CS <= 1'b0;
+		TIMER_COUNT_READING <= 1'b0;
+	end else if (AS_IN & UDS_IN & LDS_IN & ~INT_ACK_CODE) begin   // Only 16bit width
+		if (ADDRTIMERCONT) begin
+			// Write is invalid.
+			if (WR_IN) begin
+				TIMER_COUNT_READING <= 1'b0;
+				TIMER_COUNT_CS <= 1'b0;
+			end else begin
+				// HACK: TIMERCLK is 1MHz posedge prescaled clock from MCLK.
+				//   And CPUCLK is negedge prescaled clock from MCLK too.
+				//   So, this capture is safe, ... maybe? :)
+				TIMER_CAPTURED_COUNT = TIMER_COUNT;             // Sequence 1
+				TIMER_COUNT_READING = 1'b1;                     // Sequence 2
+				TIMER_COUNT_CS = 1'b1;                          // Sequnece 4
+			end
+		end else begin
+			TIMER_COUNT_CS <= 1'b0;
+			TIMER_COUNT_READING <= 1'b0;
+		end
+	end else begin
+		TIMER_COUNT_CS <= 1'b0;
+		TIMER_COUNT_READING <= 1'b0;
+	end
+end
+
+// Read Timer count port. (16bit width)
+assign DATA[15:0] = TIMER_COUNT_READING ? TIMER_CAPTURED_COUNT : 16'bz;
+
+//---------------------
+
+// Timer interrupt request.
+reg TIMER_INT_REQ;
+
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
+	if (~RUN_IN) begin
+		TIMER_INT_REQ <= 1'b0;
+	end else begin
+		TIMER_INT_REQ <= TIMER_ENABLE_INT & (TIMER_REACHED_TRIGGER ^ TIMER_COUNT_CAPTURED);
 	end
 end
 
@@ -307,7 +426,7 @@ end
 
 // Interrupt level encoder.
 
-// INT1, b001 : (Timer, reserved)
+// INT1, b001 : Timer 1kHz.
 // INT2, b010 : SPI UART send.
 // INT3, b011 : SPI UART received.
 // INT4, b100 : (Reserved)
@@ -315,8 +434,8 @@ end
 // INT6, b110 : (Reserved)
 // INT7, b111 : (Reserved)
 
-assign INT_LEVEL[0] = UART_RECEIVE_INT_REQ;
-assign INT_LEVEL[1] = UART_SEND_INT_REQ || UART_RECEIVE_INT_REQ;
+assign INT_LEVEL[0] = TIMER_INT_REQ | UART_RECEIVE_INT_REQ;
+assign INT_LEVEL[1] = UART_SEND_INT_REQ | UART_RECEIVE_INT_REQ;
 assign INT_LEVEL[2] = 1'b0;
 
 wire INT_DATA_STROBE = UDS_IN & LDS_IN;
@@ -330,6 +449,9 @@ always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
 		INT_VALID <= 1'b0;
 	end else if (AS_IN & INT_DATA_STROBE & INT_ACK_CODE) begin
 		case (INT_ACK_LEVEL)
+			3'b001:begin    // INT1: Timer 1kHz.
+				INT_VALID <= 1'b1;
+			end
 			3'b010:begin    // INT2: SPI UART send.
 				INT_VALID <= 1'b1;
 			end
@@ -348,7 +470,7 @@ end
 ////////////////////////////////////////////////////
 
 // Data acknowledge.
-wire ADDR_VALID = PROM_CS0 | PROM_CS1 | SRAM_CS0 | SRAM_CS1 | SIGNAL_CS | UART_CONTROL_CS | UART_SEND_CS | UART_RECEIVE_CS;
+wire ADDR_VALID = PROM_CS0 | PROM_CS1 | SRAM_CS0 | SRAM_CS1 | SIGNAL_CS | UART_CONTROL_CS | UART_SEND_CS | UART_RECEIVE_CS | TIMER_CONTROL_CS;
 wire REQ_VALID = ADDR_VALID | INT_VALID;
 
 // Handles step execution mode.
