@@ -115,10 +115,10 @@ always @ (negedge SPICLK_IN, negedge SPISS_IN) begin
 				// <= { SPISI_IN, RECEIVE_BUFFER[7:1] }[3:0]
 				INPUT_SIGNAL <= RECEIVE_BUFFER[4:1];
 				UART_RECEIVE_BYTE = { SPISI_IN, RECEIVE_BUFFER[15:9] };   // Sequence 1
-				if (RECEIVE_BUFFER[5]) begin   // RECEIVE_DATA
+				if (RECEIVE_BUFFER[5]) begin       // RECEIVE_DATA
 					UART_RECEIVED_TRIGGER = ~UART_RECEIVED_TRIGGER;       // Sequence 2
 				end
-				SEND_BUSY = RECEIVE_BUFFER[6];    // SEND_BUSY            // Sequence 3
+				SEND_BUSY <= RECEIVE_BUFFER[6];    // SEND_BUSY
 			end
 			default:begin
 				// Shift in the bits.

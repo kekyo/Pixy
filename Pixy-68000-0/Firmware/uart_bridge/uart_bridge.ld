@@ -26,6 +26,7 @@ SECTIONS
 		*(.rodata.*)
 	} > ROM
 	.data : {
+		__data_top = .;
 		*(.data)
 		*(.data*)
 	} > RAM AT > ROM
