@@ -78,44 +78,9 @@ static inline void enableInterrupts() {
 ///////////////////////////////////////////////////////////////
 
 __attribute__((interrupt_handler))
-static void irq_handler_bus_error() {
-    __digitalWrite(PIN_LED0, HIGH);
-}
-
-__attribute__((interrupt_handler))
-static void irq_handler_address_error() {
-    __digitalWrite(PIN_LED1, HIGH);
-}
-
 static void irq_handler_error() {
     __digitalWrite(PIN_LED2, HIGH);
 }
-
-static void __irq_handler_error(uint8_t code) {
-    __digitalWrite(PIN_LED3, HIGH);
-}
-
-#define IRQ_ERROR_HANDLER(code) \
-    __attribute__((interrupt_handler)) \
-    static void irq_handler_error##code() { \
-        __irq_handler_error(code); \
-    }
-
-IRQ_ERROR_HANDLER(4)
-IRQ_ERROR_HANDLER(5)
-IRQ_ERROR_HANDLER(6)
-IRQ_ERROR_HANDLER(7)
-IRQ_ERROR_HANDLER(8)
-IRQ_ERROR_HANDLER(9)
-IRQ_ERROR_HANDLER(10)
-IRQ_ERROR_HANDLER(11)
-IRQ_ERROR_HANDLER(24)
-IRQ_ERROR_HANDLER(26)
-IRQ_ERROR_HANDLER(27)
-IRQ_ERROR_HANDLER(28)
-IRQ_ERROR_HANDLER(29)
-IRQ_ERROR_HANDLER(30)
-IRQ_ERROR_HANDLER(31)
 
 static uint8_t count;
 
@@ -129,16 +94,16 @@ static void irq_handler_timer_reached() {
 __attribute__((used, section(".vectors")))
 void (* const vectors[])(void) =
 {
-    irq_handler_bus_error,        // 2 : Bus error
-    irq_handler_address_error,    // 3 : Address error
-    irq_handler_error4,     // 4 : Invalid instruction
-    irq_handler_error5,     // 5 : Zero divide error
-    irq_handler_error6,     // 6 : CHK
-    irq_handler_error7,     // 7 : TRAPV
-    irq_handler_error8,     // 8 : Privilege vioration 
-    irq_handler_error9,     // 9 : Trace
-    irq_handler_error10,    // 10: Line 1010
-    irq_handler_error11,    // 11: Line 1111
+    irq_handler_error,      // 2 : Bus error
+    irq_handler_error,      // 3 : Address error
+    irq_handler_error,      // 4 : Invalid instruction
+    irq_handler_error,      // 5 : Zero divide error
+    irq_handler_error,      // 6 : CHK
+    irq_handler_error,      // 7 : TRAPV
+    irq_handler_error,      // 8 : Privilege vioration 
+    irq_handler_error,      // 9 : Trace
+    irq_handler_error,      // 10: Line 1010
+    irq_handler_error,      // 11: Line 1111
     irq_handler_error,      // 12: (Reserved)
     irq_handler_error,      // 13: (Reserved)
     irq_handler_error,      // 14: (Reserved)
@@ -151,14 +116,14 @@ void (* const vectors[])(void) =
     irq_handler_error,      // 21: (Reserved)
     irq_handler_error,      // 22: (Reserved)
     irq_handler_error,      // 23: (Reserved)
-    irq_handler_error24,    // 24: Sprious interrupt
+    irq_handler_error,      // 24: Sprious interrupt
     irq_handler_timer_reached,    // 25: Level 1 interrupt autovector (Timer 1kHz)
-    irq_handler_error26,          // 26: Level 2 interrupt autovector (UART sent)
-    irq_handler_error27,          // 27: Level 3 interrupt autovector (UART received)
-    irq_handler_error28,          // 28: Level 4 interrupt autovector
-    irq_handler_error29,          // 29: Level 5 interrupt autovector
-    irq_handler_error30,          // 30: Level 6 interrupt autovector
-    irq_handler_error31,          // 31: Level 7 interrupt autovector
+    irq_handler_error,      // 26: Level 2 interrupt autovector (UART sent)
+    irq_handler_error,      // 27: Level 3 interrupt autovector (UART received)
+    irq_handler_error,      // 28: Level 4 interrupt autovector
+    irq_handler_error,      // 29: Level 5 interrupt autovector
+    irq_handler_error,      // 30: Level 6 interrupt autovector
+    irq_handler_error,      // 31: Level 7 interrupt autovector
 };
 
 ///////////////////////////////////////////////////////////////
@@ -166,7 +131,11 @@ void (* const vectors[])(void) =
 void main() {
     void** pv = (void**)0x00000008;
     pv[23] = irq_handler_timer_reached;
+
     enableInterrupts();
+
     while (1) {
+        digitalWrite(PIN_LED0, digitalRead(PIN_SW0));
+        digitalWrite(PIN_LED1, digitalRead(PIN_SW1));
     }
 }
