@@ -5,15 +5,16 @@ module ClockDivider(
 
 /////////////////////////////////////////////
 
-reg [2:0] DIV_COUNT;
+reg [5:0] DIV_COUNT;
 
 // CLK_IN=40MHz  (25ns)
 always @ (posedge MCLK_IN) begin
-    if (DIV_COUNT == 3'd0) begin
-        DIV_COUNT <= 3'd0;     // 20MHz = 2 * 25ns
+    if (DIV_COUNT == 6'd0) begin
+        DIV_COUNT <= 6'd1;      // 20MHz = 2 * 25ns
+        //DIV_COUNT <= 6'd63;
         CPUCLK <= ~CPUCLK;
     end else begin
-        DIV_COUNT <= DIV_COUNT - 3'd1;
+        DIV_COUNT <= DIV_COUNT - 6'd1;
     end
 end
 

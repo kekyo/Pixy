@@ -4,20 +4,21 @@
 
     .global _start
 _start:
-    eorl %d0,%d0
-    eorl %d1,%d1
-    eorl %d2,%d2
-    eorl %d3,%d3
-    movel %d0,%a0
-    movel %d0,%a1
-    movel %d0,%a2
-    movel %d0,%a3
-    movel %d0,%a5
-    movel #0x00100000,%d4
+    movew	#0x2600,%sr
+    movel #0x00000400,%a5
+    /* eorl %d0,%d0 */
+    /* movel #0x00100000,%d4 */
+    movel #0x00000100,%d4
     movel #32,%d5
 .clrloop:
-    moveml %d0-%d3/%a0-%a3,(%a5)
-    addl %d5,%a5
+    movel %d0,(%a5)+
+    movel %d0,(%a5)+
+    movel %d0,(%a5)+
+    movel %d0,(%a5)+
+    movel %d0,(%a5)+
+    movel %d0,(%a5)+
+    movel %d0,(%a5)+
+    movel %d0,(%a5)+
     subl %d5,%d4            /* Each 4byte * 8 = 32byte */
 	bnes .clrloop
 
@@ -36,7 +37,14 @@ _start:
 	subw %d5,%d4            /* Each 4byte * 8 = 32byte */
 	bnes .vecloop
 
-    movel %ssp,%fp
+    movel %d0,%fp
 
-    andiw #0xa000,%sr        /* Enable interrupts */
+/*    andiw #0xf8ff,%sr        /* Enable interrupts */
     jmp main
+
+    .global irq_handler_timer_reached
+irq_handler_timer_reached:
+    movel %d0,%sp@-
+    movew 0x0010000a,%d0
+    movel %sp@+,%d0
+    rte
