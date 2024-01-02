@@ -14,13 +14,7 @@
 #define PIN_LED2 6
 #define PIN_LED3 7
 
-#define UART_SEND_BUSY 0x01
-#define UART_RECEIVED 0x02
-#define UART_ENABLE_SEND_INT 0x04
-#define UART_ENABLE_RECEIVE_INT 0x08
-
 #define TIMER_ENABLE_INT 0x01
-#define TIMER_REACHED 0x02
 
 //---------------------------------------
 
@@ -30,9 +24,6 @@
 //---------------------------------------
 
 static volatile uint8_t* const pSignal = (uint8_t*)0x00100001;
-static volatile uint8_t* const pUartControl = (uint8_t*)0x00100003;
-static volatile uint8_t* const pUartSendData = (uint8_t*)0x00100005;
-static const volatile uint8_t* const pUartReceiveData = (uint8_t*)0x00100007;
 
 static volatile uint8_t* const pTimerControl = (uint8_t*)0x00100009;
 static const volatile uint16_t* const pTimerCount = (uint16_t*)0x0010000a;
@@ -70,7 +61,6 @@ static inline uint16_t getFreeRunningCounter() {
 
 static inline void enableInterrupts() {
     __cli();
-    *pTimerControl &= ~TIMER_REACHED;
     *pTimerControl |= TIMER_ENABLE_INT;
     __sti();
 }
@@ -129,9 +119,6 @@ void (* const vectors[])(void) =
 ///////////////////////////////////////////////////////////////
 
 void main() {
-    void** pv = (void**)0x00000008;
-    pv[23] = irq_handler_timer_reached;
-
     enableInterrupts();
 
     while (1) {
