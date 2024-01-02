@@ -237,7 +237,7 @@ void setup() {
 void loop() {
 #if BITBANG
   // Assert reset to FPGA (68000).
-  if (PIND & 0x80) {
+  if (!(PIND & 0x80)) {
     if (!resetting) {
       digitalWrite(PROGRAMN, LOW);
       pinMode(PROGRAMN, OUTPUT);

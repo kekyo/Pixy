@@ -382,6 +382,7 @@ always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		TIMER_COUNT_CS <= 1'b0;
 		TIMER_COUNT_READING <= 1'b0;
+		TIMER_CAPTURED_COUNT <= 16'b0;
 	end else if (AS_IN & UDS_IN & LDS_IN & ~INT_ACK_CODE) begin   // Only 16bit width
 		if (ADDRTIMERCONT) begin
 			// Write is invalid.

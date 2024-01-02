@@ -1,5 +1,6 @@
 module Main(
 	input MCLK,
+	input PROGRAMN_n,
 	input AS_n,
 	input RW,
 	input UDS_n,
@@ -39,6 +40,7 @@ module Main(
 	output SPISO
 );
 
+wire PROGRAMN = ~PROGRAMN_n;
 wire SPISS = ~SPISS_n;
 wire AS = ~AS_n;
 wire UDS = ~UDS_n;
@@ -79,6 +81,7 @@ ClockDivider CD(
 	
 Reset R(
 	.MCLK_IN(MCLK),
+	.RESET_ALL_IN(PROGRAMN),
 	.RESET(RESET),
 	.HALT(HALT),
 	.RUN(RUN));

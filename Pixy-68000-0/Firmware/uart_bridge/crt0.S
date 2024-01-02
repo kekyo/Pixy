@@ -40,13 +40,3 @@ _start:
 
     andiw #0xa000,%sr        /* Enable interrupts */
     jmp main
-
-    .global __cli
-__cli:
-    oriw #0x0700,%sr         /* Disable interrupts */
-    rts
-    
-    .global __sti
-__sti:
-    andiw #0xa0ff,%sr        /* Enable interrupts */
-    rts

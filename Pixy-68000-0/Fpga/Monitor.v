@@ -26,7 +26,7 @@ always @ (posedge UART_SEND_TRIGGER_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		UART_SEND_TRIGGER <= UART_SENT_TRIGGER;
 		UART_SEND_BYTE <= 8'b0;
-	end else begin
+	end else if (UART_SEND_TRIGGER == UART_SENT_TRIGGER) begin
 		UART_SEND_BYTE = UART_SEND_BYTE_IN;      // Sequence 1
 		UART_SEND_TRIGGER = ~UART_SEND_TRIGGER;  // Sequence 2
 	end
@@ -38,7 +38,7 @@ reg UART_CAPTURED_TRIGGER;
 always @ (posedge UART_RECEIVE_CAPTURE_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		UART_CAPTURED_TRIGGER <= UART_RECEIVED_TRIGGER;
-	end else begin
+	end else if (UART_CAPTURED_TRIGGER != UART_RECEIVED_TRIGGER) begin
 		UART_CAPTURED_TRIGGER <= ~UART_CAPTURED_TRIGGER;
 	end
 end
@@ -64,7 +64,7 @@ always @ (posedge SPICLK_IN, negedge SPISS_IN) begin
 		case (SPI_STATE)
 			// Start.
 			6'd0:begin
-				if (UART_SEND_TRIGGER != UART_SENT_TRIGGER) begin
+				if ((UART_SEND_TRIGGER != UART_SENT_TRIGGER) & ~SEND_BUSY) begin
 					// Little endian, LSB first format.
 					// MSB  ------------------------------------------------------------------------------------------------------------  LSB
 					//      | UART_SEND_BYTE[7:0] | 0 | 0 | RECV_BUSY | SEND_DATA(1)    | OUTPUT_SIGNAL[3:0] | DATA[15:0] | ADDR[23:0] |  ====>
