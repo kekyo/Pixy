@@ -76,7 +76,7 @@ static uint8_t count;
 
 __attribute__((interrupt_handler))
 static void irq_handler_timer_reached() {
-    const uint16_t v = *pTimerCount;
+    const uint16_t v = getFreeRunningCounter();
     count++;
     __digitalWrite(PIN_LED3, count >> 7);
 }
