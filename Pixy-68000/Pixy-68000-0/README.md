@@ -56,7 +56,7 @@ Will fix these errata in next version (Pixy-68000-1).
       The Pixy-68000-0 has Errata, so do not connect anything to pin 11 of the JTAG port, connect to the VCC pin instead.
       The other pins should be connected as they are:
       ![JTAG](Images/Pixy-68000-0-jtag.jpg)
-   3. Open `Fpga.ldf` in [Fpga/](Fpga/) directory on Lattice Diamond and build it.
+   3. Open `Fpga.ldf` in [../Fpga/](../Fpga/) directory on Lattice Diamond and build it.
       Since it is difficult to understand how to operate, please refer to the following figure.
       After clicking `Process` tab, check `JEDEC File` and double click `Export Files`, will be built FPGA bitstream:
       ![Diamond1](Images/Diamond1.png)
@@ -76,7 +76,7 @@ Will fix these errata in next version (Pixy-68000-1).
 
 ### Build the code in 68000
 
-Run toolchain builder, you can use the script [Firmware/setup.sh](Firmware/setup.sh).
+Run toolchain builder, you can use the script [../Firmware/setup.sh](../Firmware/setup.sh).
 This script builds the near-latest version of gcc for the m68k architecture.
 Just run it to download the necessary files from the respective distribution sites.
 
@@ -98,7 +98,7 @@ This is useful if you want to check the address bus or data bus of the 68000 wit
 In other words, if the Pixy-68000-0 does not work immediately after assembly, this code is intended to be used for troubleshooting.
 
 1. Build and write this blinker firmware into Flash PROMs.
-   [Blinker firmware](Firmware/blinker/)
+   [Blinker firmware](../Firmware/blinker/)
 2. Power on.
 
 This code does not provide any visible output at all.
@@ -114,20 +114,16 @@ Or, you can also hook a logic analyzer probe to the header pins on the top of th
 ### LED blinker test
 
 1. Build and write this blinker firmware into Flash PROMs.
-   [Blinker firmware](Firmware/blinker/)
+   [Blinker firmware](../Firmware/blinker/)
 2. Power on.
 3. Blinks LEDs from LED0 to LED3 repeatedly.
 
 ### SRAM checker
 
 1. Build and write this checker firmware into Flash PROMs.
-   [SRAM checker firmware](Firmware/sram_check/)
+   [SRAM checker firmware](../Firmware/sram_check/)
 2. Power on.
 3. See status LEDs. The test takes about 20 minutes to complete when the CPU clock is 20 MHz.
    ![Status LEDs](Images/Pixy-68000-0-sram_check.jpg)
-
-NOTE: [Strict SRAM checker firmware](Firmware/strict_sram_check/)
-checks that the bits in the SRAM are written correctly and that none are written to unrelated addresses.
-Therefore, this code takes a very long time (maybe some days).
 
 ### TODO:
