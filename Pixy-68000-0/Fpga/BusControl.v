@@ -19,7 +19,7 @@ module BusControl(
 	output DATA_ACK,
 	output INT_AUTOVEC_ACK,
 	output BUS_ERROR_ACK,
-	output [2:0] INT_LEVEL,
+	output reg [2:0] INT_LEVEL,
 	output reg PROM_CS0,
 	output reg PROM_CS1,
 	output reg SRAM_CS0,
@@ -434,9 +434,19 @@ wire TIMER_INT_REQ = TIMER_ENABLE_INT & (TIMER_INT_REACHED != TIMER_INT_READ);
 // INT6, b110 : (Reserved)
 // INT7, b111 : (Reserved)
 
-assign INT_LEVEL[0] = TIMER_INT_REQ | UART_RECEIVE_INT_REQ;
-assign INT_LEVEL[1] = UART_SEND_INT_REQ | UART_RECEIVE_INT_REQ;
-assign INT_LEVEL[2] = 1'b0;
+always @ (negedge CPUCLK_IN, negedge RUN_IN) begin
+	if (~RUN_IN) begin
+		INT_LEVEL = 3'b000;
+	end else if (UART_RECEIVE_INT_REQ) begin
+		INT_LEVEL = 3'b011;
+	end else if (UART_SEND_INT_REQ) begin
+		INT_LEVEL = 3'b010;
+	end else if (TIMER_INT_REQ) begin
+		INT_LEVEL = 3'b001;
+	end else begin
+		INT_LEVEL = 3'b000;
+	end
+end
 
 wire INT_DATA_STROBE = UDS_IN & LDS_IN;
 wire [2:0] INT_ACK_LEVEL = ADDR_IN[3:1];    // { A3, A2, A1 }
