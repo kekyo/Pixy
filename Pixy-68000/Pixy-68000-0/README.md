@@ -38,11 +38,13 @@ Will fix these errata in next version (Pixy-68000-1).
    Once the firmware is written, this quick-hack wiring is not required thereafter.
    ![Errata](Images/Pixy-68000-0-errata.png)
    ![Quick-hack wiring](Images/Pixy-68000-0-errata-photo.jpg)
-   ![Write firmware](Images/Pixy-68000-0-write-firmware.png)
 3. The `SPISS` signal is missing.
    Cut the line and additional wiring should be added as follows.
    ![Errata2-1](Images/Pixy-68000-0-errata2-photo1.jpg)
    ![Errata2-2](Images/Pixy-68000-0-errata2-photo2.jpg)
+4. Did not avoid data bus confliction before reset complete.
+   Add resister 2.2k ohm between `VCC` and `/OE`.
+   ![Errata3](Images/Pixy-68000-0-errata3-photo.jpg)
 
 ## How to enable Pixy-68000-0
 
@@ -56,6 +58,8 @@ Will fix these errata in next version (Pixy-68000-1).
       The Pixy-68000-0 has Errata, so do not connect anything to pin 11 of the JTAG port, connect to the VCC pin instead.
       The other pins should be connected as they are:
       ![JTAG](Images/Pixy-68000-0-jtag.jpg)
+      You can use cheaper JTAG adapter FT2232HL/FT4232HL:
+      ![Cheaper JTAG adapter](Images/Pixy-68000-0-jtag2.jpg)
    3. Open `Fpga.ldf` in [../Fpga/](../Fpga/) directory on Lattice Diamond and build it.
       Since it is difficult to understand how to operate, please refer to the following figure.
       After clicking `Process` tab, check `JEDEC File` and double click `Export Files`, will be built FPGA bitstream:
@@ -72,11 +76,14 @@ Will fix these errata in next version (Pixy-68000-1).
    8. Clicking on the program writes a bitstream to the FPGA:
       ![Diamond6](Images/Diamond6.png)
 3. Write CoProcessor firmware on PlatformIO/Arduino based.
-   TODO:
+   1. Write MegaCore firmware by Arduino at first time, this will make Arduinable ATMega328P.
+      ![Write firmware](Images/Pixy-68000-0-write-firmware.png)
+   2. Now we can use PlatformIO for programming. Open [Co-processor firmware project via PlatformIO (Visual Studio Code)](../CoProcessor/Firmware/).
+   3. Build and download the co-processor firmware.
 
 ### Build the code in 68000
 
-Run toolchain builder, you can use the script [../Firmware/setup.sh](../Firmware/setup.sh).
+Run gcc toolchain builder, you can use the script [../Firmware/setup.sh](../Firmware/setup.sh).
 This script builds the near-latest version of gcc for the m68k architecture.
 Just run it to download the necessary files from the respective distribution sites.
 
@@ -98,7 +105,7 @@ This is useful if you want to check the address bus or data bus of the 68000 wit
 In other words, if the Pixy-68000-0 does not work immediately after assembly, this code is intended to be used for troubleshooting.
 
 1. Build and write this blinker firmware into Flash PROMs.
-   [Blinker firmware](../Firmware/blinker/)
+   [Blinker firmware](../Firmware/test/blinker/)
 2. Power on.
 
 This code does not provide any visible output at all.
@@ -114,16 +121,27 @@ Or, you can also hook a logic analyzer probe to the header pins on the top of th
 ### LED blinker test
 
 1. Build and write this blinker firmware into Flash PROMs.
-   [Blinker firmware](../Firmware/blinker/)
+   [Blinker firmware](../Firmware/test/blinker/)
 2. Power on.
 3. Blinks LEDs from LED0 to LED3 repeatedly.
 
 ### SRAM checker
 
 1. Build and write this checker firmware into Flash PROMs.
-   [SRAM checker firmware](../Firmware/sram_check/)
+   [SRAM checker firmware](../Firmware/test/sram_check/)
 2. Power on.
 3. See status LEDs. The test takes about 20 minutes to complete when the CPU clock is 20 MHz.
    ![Status LEDs](Images/Pixy-68000-0-sram_check.jpg)
 
-### TODO:
+### Serial (UART) tester
+
+The UART on the Pixy-68000-0 is an ATMega328P connected to a CH340N (USB).
+It is recognized as a serial device by the PC.
+It is transferred from ATMega328P to MachXO2 via SPI and can send/receive data to/from the 68000 CPU.
+
+1. Build and write this test firmware into Flash PROMs.
+   [UART tester firmware](../Firmware/test/uart_bridge/)
+2. Power on.
+3. Connect the serial device to your PC OS and set serial baudrate to 38400.
+4. Press `SW0` to `SW3` switch, Then will receive the message `Hello Pixy 0` to `Hello Pixy 3`.
+5. Pixy make the echo your sending characters.
