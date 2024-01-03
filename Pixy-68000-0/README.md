@@ -11,8 +11,13 @@
   * It can also be used in "ATMega-328P".
 * [LATTICE MachXO2 LCMXO2-640](https://www.latticesemi.com/products/fpgaandcpld/machxo2)
   * Bus controller, captured all signals from the CPU.
-* SRAM 1MB (512kbit * 2)
-* Flash PROM 1MB (512kbit * 2, PLCC)
+* SRAM 1MB (512kbit * 2), no-wait.
+* Flash PROM 1MB (512kbit * 2, PLCC), no-wait.
+
+### Features
+
+* We can use the gcc toolchain. In other words, we can write code in C language.
+
 
 ## PCB (Pixy-68000-0)
 
@@ -39,4 +44,90 @@ Will fix these errata in next version (Pixy-68000-1).
    ![Errata2-1](Images/Pixy-68000-0-errata2-photo1.jpg)
    ![Errata2-2](Images/Pixy-68000-0-errata2-photo2.jpg)
 
-## TODO:
+## How to enable Pixy-68000-0
+
+1. Solder the all parts/components, taking care to avoid errata.
+2. Write bitstream to Lattice MachXO2 FPGA.
+   1. You need [Lattice Diamond Software](https://www.latticesemi.com/latticediamond) to build and write FPGA bitstreams.
+      Since this project is in the scope of small-scale development, it is free to use. Please download, install, and activate the free license.
+   2. Connect the Lattice Programming Cable to the JTAG port.
+      The confirmed adapter is [HW-USBN-2B](https://www.latticesemi.com/en/Products/DevelopmentBoardsAndKits/ProgrammingCablesforPCs),
+      but if it is recognized by Lattice Diamond, other adapters can also be used for writing.
+      The Pixy-68000-0 has Errata, so do not connect anything to pin 11 of the JTAG port, connect to the VCC pin instead.
+      The other pins should be connected as they are:
+      ![JTAG](Images/Pixy-68000-0-jtag.jpg)
+   3. Open `Fpga.ldf` in [Fpga/](Fpga/) directory on Lattice Diamond and build it.
+      Since it is difficult to understand how to operate, please refer to the following figure.
+      After clicking `Process` tab, check `JEDEC File` and double click `Export Files`, will be built FPGA bitstream:
+      ![Diamond1](Images/Diamond1.png)
+   4. Referring to the figure, open the `Programmer` tab and add a new target device row:
+      ![Diamond2](Images/Diamond2.png)
+   5. In the `Device Family` column, set the target device to `MachXO2`:
+      ![Diamond3](Images/Diamond3.png)
+   6. In the `Device` column, set the model number to `LCMXO2-640HC`:
+      ![Diamond4](Images/Diamond4.png)
+   7. Double-click this line to open the `Device Properties` dialog. Configure as follows.
+      The `Fpga_Core.jed` file is the bitstream file you just built. It is generated in the `Pixy-68000-0/Fpga/Core` directory.
+      ![Diamond5](Images/Diamond5.png)
+   8. Clicking on the program writes a bitstream to the FPGA:
+      ![Diamond6](Images/Diamond6.png)
+3. Write CoProcessor firmware on PlatformIO/Arduino based.
+   TODO:
+
+### Build the code in 68000
+
+Run toolchain builder, you can use the script [Firmware/setup.sh](Firmware/setup.sh).
+This script builds the near-latest version of gcc for the m68k architecture.
+Just run it to download the necessary files from the respective distribution sites.
+
+TODO:
+
+### Write into the Flash ROMs
+
+* Install the Flash PROM in the following location. Refer to the figure and note the position and direction.
+  For some reason, my ROM writer (GQ-4x4) wrote Even and Odd swapped.
+  Notice the word sequence of the image loaded into the ROM writer.
+  * Even: Lower address in BYTE sequence: 0x000000
+  * Odd: Lower+1 address in BYTE sequence: 0x000001
+  ![Flash PROM](Images/Pixy-68000-0-flash.jpg)
+
+### Looper test
+
+This looper test code executes an infinite loop immediately at the entry point.
+This is useful if you want to check the address bus or data bus of the 68000 with a logic analyzer, for example.
+In other words, if the Pixy-68000-0 does not work immediately after assembly, this code is intended to be used for troubleshooting.
+
+1. Build and write this blinker firmware into Flash PROMs.
+   [Blinker firmware](Firmware/blinker/)
+2. Power on.
+
+This code does not provide any visible output at all.
+However, you will be able to observe the address bus and data bus of the 7-segment LEDs,
+
+You can observe the bus activity using the address bus, data bus, and step execution functions of the 7-segment LEDs.
+Or, you can also hook a logic analyzer probe to the header pins on the top of the device to observe the signals in detail:
+
+![Saleae probe](Images/SaleaeProbe.jpg)
+
+![Saleae Logic screenshot](Images/SaleaeLogic.png)
+
+### LED blinker test
+
+1. Build and write this blinker firmware into Flash PROMs.
+   [Blinker firmware](Firmware/blinker/)
+2. Power on.
+3. Blinks LEDs from LED0 to LED3 repeatedly.
+
+### SRAM checker
+
+1. Build and write this checker firmware into Flash PROMs.
+   [SRAM checker firmware](Firmware/sram_check/)
+2. Power on.
+3. See status LEDs. The test takes about 20 minutes to complete when the CPU clock is 20 MHz.
+   ![Status LEDs](Images/Pixy-68000-0-sram_check.jpg)
+
+NOTE: [Strict SRAM checker firmware](Firmware/strict_sram_check/)
+checks that the bits in the SRAM are written correctly and that none are written to unrelated addresses.
+Therefore, this code takes a very long time (maybe some days).
+
+### TODO:

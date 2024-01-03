@@ -1,20 +1,35 @@
 module ClockDivider(
-    input CLK_IN,
-    output CLK_OUT);
+    input MCLK_IN,
+    output reg CPUCLK,
+    output reg TIMERCLK);
 
-reg LAST;
-reg [8:0] COUNT;
+/////////////////////////////////////////////
 
-// CLK_IN=40MHz
-always @ (posedge CLK_IN) begin
-    if (COUNT == 'd399) begin   // 10us/100kHz=199
-        LAST <= ~LAST;
-        COUNT <= 0;
+reg [5:0] DIV_COUNT;
+
+// CLK_IN=40MHz  (25ns)
+always @ (posedge MCLK_IN) begin
+    if (DIV_COUNT == 6'd0) begin
+        DIV_COUNT <= 6'd1;      // 20MHz = 2 * 25ns
+        //DIV_COUNT <= 6'd63;
+        CPUCLK <= ~CPUCLK;
     end else begin
-        COUNT <= COUNT + 9'd1;
+        DIV_COUNT <= DIV_COUNT - 6'd1;
     end
 end
 
-assign CLK_OUT = LAST;
+/////////////////////////////////////////////
+
+reg [4:0] TIMER_COUNT;
+
+// CLK_IN=40MHz  (25ns)
+always @ (posedge MCLK_IN) begin
+    if (TIMER_COUNT == 5'd0) begin
+        TIMER_COUNT <= 5'd20;    // 1MHz = 40 * 25ns
+        TIMERCLK <= ~TIMERCLK;
+    end else begin
+        TIMER_COUNT <= TIMER_COUNT - 5'd1;
+    end
+end
 
 endmodule

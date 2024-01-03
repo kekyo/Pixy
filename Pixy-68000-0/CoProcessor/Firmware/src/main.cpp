@@ -1,5 +1,18 @@
 #include <Arduino.h>
+#include <TimerOne.h>
 #include <SPI.h>
+
+//-----------------------------------
+
+#define BAUDRATE 38400
+//#define BAUDRATE 115200
+#define SPI_SPEED 8000000
+//#define SPI_SPEED 100000
+
+#define BITBANG 1
+#define LOCAL_ECHO 0
+
+//-----------------------------------
 
 #define DIO0 PIN_PC0
 #define DIO1 PIN_PC1
@@ -25,7 +38,118 @@
 #define REQINT PIN_PD2
 #define PROGRAMN PIN_PD3
 
-static const byte digitPatterns[16] = {
+///////////////////////////////////////////////////////////
+
+class LedSegment
+{
+private:
+  static const uint8_t digitPatterns[16];
+
+  static inline void outputBits(uint8_t row0, uint8_t row1) {
+    for (int j = 0; j < 8; j++) {
+#if BITBANG
+      const uint8_t bits = ((row0 & 0x80) >> 7) | ((row1 & 0x80) >> 6);
+      PORTC = (PORTC & 0xfc) | bits;
+      PORTC &= 0xfb;
+      PORTC |= 0x04;
+#else
+      digitalWrite(DIO0, (row0 & 0x80) ? HIGH : LOW);
+      digitalWrite(DIO1, (row1 & 0x80) ? HIGH : LOW);
+      digitalWrite(SCLK, LOW);
+      digitalWrite(SCLK, HIGH);
+#endif
+      row0 <<= 1;
+      row1 <<= 1;
+    }
+  }
+
+  static inline void flush() {
+#if BITBANG
+    PORTC &= 0xf7;
+    PORTC |= 0x08;
+#else
+    digitalWrite(RCLK, LOW);
+    digitalWrite(RCLK, HIGH);
+#endif
+  }
+
+  static inline void clear() {
+    outputBits(0, 0);
+    outputBits(0, 0);
+    flush();
+  }
+
+  uint8_t state;
+  uint8_t column;
+  uint8_t count;
+  uint16_t row0h;
+  uint16_t row1h;
+  uint32_t row0;
+  uint32_t row1;
+
+  void emitCurrent() {
+    // Makes value bits
+    uint8_t v0 = digitPatterns[row0h & 0x0f];
+    uint8_t v1 = digitPatterns[row1h & 0x0f];
+    outputBits(v0, v1);
+    // Makes column bits
+    outputBits(column, column);
+    row0h >>= 4;
+    row1h >>= 4;
+    column >>= 1;
+    flush();
+  }
+
+public:
+  LedSegment() :
+    state(0), column(0x80), count(0), row0h(0), row1h(0), row0(0), row1(0) {
+  }
+
+  inline void set(uint32_t row0, uint32_t row1) {
+    this->row0 = row0;
+    this->row1 = row1;
+  }
+
+  inline void emit() {
+    switch (state) {
+      // Draw upper 4 columns.
+      case 0:
+        // Emit to segments.
+        emitCurrent();
+        count++;
+        if (count >= 4) {
+          // To lower 4 columns.
+          column = 0x08;
+          row0h = (uint16_t)row0;
+          row1h = (uint16_t)row1;
+          count = 0;
+          state = 1;
+        }
+        break;
+      // Draw lower 4 columns.
+      case 1:
+        // Emit to segments.
+        emitCurrent();
+        count++;
+        if (count >= 4) {
+          state = 2;
+        }
+        break;
+      // Blanking.
+      default:
+        clear();
+        // To upper 4 columns.
+        column = 0x80;
+        row0h = (uint16_t)(row0 >> 16);
+        row1h = (uint16_t)(row1 >> 16);
+        count = 0;
+        state = 0;
+        break;
+    }
+  }
+};
+
+const uint8_t LedSegment::digitPatterns[16] = {
   B11000000,  // 0
   B11111001,  // 1
   B10100100,  // 2
@@ -46,47 +170,31 @@ static const byte digitPatterns[16] = {
 
 ///////////////////////////////////////////////////////////
 
-static void outputBits(byte row0, byte row1) {
-  for (int j = 0; j < 8; j++) {
-    digitalWrite(DIO0, (row0 & 0x80) ? HIGH : LOW);
-    digitalWrite(DIO1, (row1 & 0x80) ? HIGH : LOW);
-    digitalWrite(SCLK, LOW);
-    digitalWrite(SCLK, HIGH);
-    row0 <<= 1;
-    row1 <<= 1;
-  }
+#define TIMER_INTERVAL 1000  // usec
+
+#define SW_BITS 0
+#define UART_RECEIVE_BYTES 1
+#define LED_BITS 5
+#define UART_SEND_BYTES 6
+
+static const SPISettings spiSettings(SPI_SPEED, LSBFIRST, SPI_MODE1);
+static uint8_t spiBuffer[7];   // 56bits
+
+static bool resetting = false;
+
+#if !LOCAL_ECHO
+static bool isReadyForReceive = false;
+#endif
+
+static LedSegment ledSegment;
+
+static void timerHandler() {
+  ledSegment.emit();
 }
 
-static void flush() {
-    digitalWrite(RCLK, LOW);
-    digitalWrite(RCLK, HIGH);
-}
-
-static void output4Segments(uint16_t row0, uint16_t row1, bool isHigh) {
-  byte column = isHigh ? 0x80 : 0x08;
-  for (int i = 0; i < 4; i++) {
-    // Makes value bits
-    byte v0 = digitPatterns[row0 & 0x0f];
-    byte v1 = digitPatterns[row1 & 0x0f];
-    outputBits(v0, v1);
-    // Makes column bits
-    outputBits(column, column);
-    row0 >>= 4;
-    row1 >>= 4;
-    column >>= 1;
-    flush();
-  }
-}
-
-static void outputSegments(uint32_t row0, uint32_t row1) {
-  output4Segments((row0 >> 16) & 0xffffffff, (row1 >> 16) & 0xffffffff, true);
-  output4Segments(row0 & 0xffffffff, row1 & 0xffffffff, false);
-}
-
-///////////////////////////////////////////////////////////
-
+// Setup.
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(BAUDRATE);
   Serial.println("setup()");
 
   SPI.begin();
@@ -117,40 +225,122 @@ void setup() {
   pinMode(SPISS, OUTPUT);
   digitalWrite(SPISS, HIGH);
 
-  pinMode(PROGRAMN, OUTPUT);
-  digitalWrite(PROGRAMN, LOW);
+  pinMode(PROGRAMN, INPUT);
+
+  Timer1.initialize(TIMER_INTERVAL);
+  Timer1.attachInterrupt(timerHandler);
 }
 
-static uint32_t value = 0;
-static const SPISettings spiSettings(100000, MSBFIRST, SPI_MODE1);
+///////////////////////////////////////////////////////////
 
+// Loop handler.
 void loop() {
-  digitalWrite(LED0, digitalRead(SW0) ? LOW : HIGH);
-  digitalWrite(LED1, digitalRead(SW1) ? LOW : HIGH);
-  digitalWrite(LED2, digitalRead(SW2) ? LOW : HIGH);
-  digitalWrite(LED3, digitalRead(SW3) ? LOW : HIGH);
-  
-  digitalWrite(PROGRAMN, digitalRead(SW4) ? LOW : HIGH);
+#if BITBANG
+  // Assert reset to FPGA (68000).
+  if (!(PIND & 0x80)) {
+    if (!resetting) {
+      digitalWrite(PROGRAMN, LOW);
+      pinMode(PROGRAMN, OUTPUT);
+      resetting = true;
+    }
+  } else {
+    if (resetting) {
+      pinMode(PROGRAMN, INPUT);
+      digitalWrite(PROGRAMN, HIGH);
+      resetting = false;
+    }
+  }
+#else
+  // Assert reset to FPGA (68000).
+  if (!digitalRead(SW4)) {
+    if (!resetting) {
+      digitalWrite(PROGRAMN, LOW);
+      pinMode(PROGRAMN, OUTPUT);
+      resetting = true;
+    }
+  } else {
+    if (resetting) {
+      pinMode(PROGRAMN, INPUT);
+      digitalWrite(PROGRAMN, HIGH);
+      resetting = false;
+    }
+  }
+#endif
 
+  // Store switch bits into the SPI buffer.
+  //  MSB  -------------------------------------------------------------------------------------------  LSB
+  //       | UART_RECEIVE_BYTE[7:0] | 0 | 0 | SEND_BUSY(0/1) | RECEIVE_DATA(0/1) | INPUT_SIGNAL[3:0] | ====>
+  //       -------------------------------------------------------------------------------------------
+  //memset(spiBuffer, 0, sizeof spiBuffer);
+  spiBuffer[SW_BITS] =
+    (digitalRead(SW0) ? 0x00 : 0x01) |
+    (digitalRead(SW1) ? 0x00 : 0x02) |
+    (digitalRead(SW2) ? 0x00 : 0x04) |
+    (digitalRead(SW3) ? 0x00 : 0x08);
+
+#if LOCAL_ECHO
+  if (Serial.available() && Serial.availableForWrite()) {
+    const uint8_t uartSendBytes = (uint8_t)Serial.read();
+    Serial.print(static_cast<char>(uartSendBytes));
+  }
+#else
+  // Store serial one byte when 68000 is ready for receiving.
+  bool isSentThisIteration = false;
+  if (isReadyForReceive && Serial.available()) {
+    spiBuffer[SW_BITS] |= 0x10;
+    spiBuffer[UART_RECEIVE_BYTES] = (uint8_t)Serial.read();
+    isSentThisIteration = true;
+    isReadyForReceive = false;
+  }
+#endif
+
+  // Indicates send buffer availability.
+  if (!Serial.availableForWrite()) {
+    spiBuffer[SW_BITS] |= 0x20;    // SEND_BUSY
+  }
+
+  // Polling by SPI.
   SPI.beginTransaction(spiSettings);
+#if BITBANG
+  PORTB &= 0xfb;
+#else
   digitalWrite(SPISS, LOW);
-  uint8_t buf[5];
-  memset(buf, 0, sizeof buf);
-  SPI.transfer(&buf, sizeof buf);
+#endif
+  SPI.transfer(spiBuffer, sizeof spiBuffer);
+#if BITBANG
+  PORTB |= 0x04;
+#else
   digitalWrite(SPISS, HIGH);
+#endif
   SPI.endTransaction();
 
-  const uint32_t addr = buf[2] | ((uint32_t)buf[1] << 8) | ((uint32_t)buf[0] << 16);
-  const uint32_t data = buf[4] | ((uint32_t)buf[3] << 8);
-  outputSegments(addr, data);
+  // Extracts 68000 address and data bus bits.
+  // It is little endian format.
+  //  MSB  ------------------------------------------------------------------------------------------------------------  LSB
+  // ====> | UART_SEND_BYTE[7:0] | 0 | 0 | RECV_BUSY | SEND_DATA(1)    | OUTPUT_SIGNAL[3:0] | DATA[15:0] | ADDR[23:0] |
+  //       ------------------------------------------------------------------------------------------------------------
+  const uint32_t addr = spiBuffer[0] | ((uint32_t)spiBuffer[1] << 8) | ((uint32_t)spiBuffer[2] << 16);
+  const uint32_t data = spiBuffer[3] | ((uint32_t)spiBuffer[4] << 8);
+  ledSegment.set(addr, data);
 
-  outputBits(0, 0);
-  outputBits(0, 0);
-  flush();
+  // Extracts output signals to drive LEDs.
+  const uint8_t outputSignal = spiBuffer[LED_BITS];
+  digitalWrite(LED0, (outputSignal & 0x01) ? HIGH : LOW);
+  digitalWrite(LED1, (outputSignal & 0x02) ? HIGH : LOW);
+  digitalWrite(LED2, (outputSignal & 0x04) ? HIGH : LOW);
+  digitalWrite(LED3, (outputSignal & 0x08) ? HIGH : LOW);
 
-  value++;
+#if !LOCAL_ECHO
+  // Skip checking when this iteration already sent data.
+  if (!isSentThisIteration) {
+    // Apply for receiving readiness on 68000.
+    isReadyForReceive = !(spiBuffer[LED_BITS] & 0x20);  // !RECV_BUSY
+  }
 
-  //Serial.print("Value=");
-  //Serial.println(value);
-  //delay(500);
+  const bool isAvailableUartSendData = spiBuffer[LED_BITS] & 0x10;
+  if (isAvailableUartSendData) {
+    const uint8_t uartSendBytes = spiBuffer[UART_SEND_BYTES];
+    Serial.print(static_cast<char>(uartSendBytes));
+  }
+#endif
 }

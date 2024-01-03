@@ -57,3 +57,8 @@ impl*/
 *.tpf.*
 xxx_lse_cp_file_list
 xxx_lse_sign_file
+*.sty
+*.asd
+*.synproj
+*.xcf
+*.lsedata
