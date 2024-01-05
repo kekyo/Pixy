@@ -3,31 +3,37 @@ OUTPUT_FORMAT("elf32-m68k")
 OUTPUT_ARCH(m68k)
 ENTRY(_start)
 
-SEARCH_DIR("/home/kouji/.m68k-elf-gcc/m68k-elf/lib");
-GROUP(-lc)
-INPUT(pixy-68000-0.o)
+SEARCH_DIR("=m68k-elf/lib");
+SEARCH_DIR("=lib/gcc/m68k-elf/13.2.0");
+GROUP(-lpixy -lc -lgcc)
 __DYNAMIC = 0;
 
 MEMORY
 {
-  ram (rwx)  : ORIGIN = 0x000400, LENGTH = 1M - 0x000400
-  rom (rx)   : ORIGIN = 0xf00000, LENGTH = 1M
+  vec (rw)    : ORIGIN = 0x000000, LENGTH = 0x00000400
+  ram (rwx)   : ORIGIN = 0x000400, LENGTH = 1M - 0x000400
+  initvec (r) : ORIGIN = 0xf00000, LENGTH = 0x00000400
+  rom (xr)    : ORIGIN = 0xf00400, LENGTH = 1M - 0x000400
 }
 
-PROVIDE (__stack = 0);
+PROVIDE (__stack = 0x00100000);
 PROVIDE (software_init_hook = 0);
 PROVIDE (_software_init_hook = 0);
 
 SECTIONS
 {
-  .text :
+  .vectors :
   {
     __init_vec = .;
+    __rom_top = .;
     LONG(ORIGIN(ram) + LENGTH(ram));
     LONG(_start);
-    *(.vector)
+    *(.vectors)
+  } > initvec
 
-    . = ALIGN(0x400);
+  .text :
+  {
+    _stext = .;
     CREATE_OBJECT_SYMBOLS
     *(.text .text.*)
 
@@ -70,6 +76,8 @@ SECTIONS
 
   .data :
   {
+    _sdata = .;
+    __rom_data_top = LOADADDR(.data);
     *(.got.plt) *(.got)
     *(.shdata)
     *(.data .data.*)
@@ -96,4 +104,8 @@ SECTIONS
   {
     *(.stabstr)
   }
+
+  .vec : {
+    __vec = .;
+  } > vec
 }
