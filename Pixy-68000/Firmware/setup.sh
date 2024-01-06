@@ -12,7 +12,7 @@ MPFR_VERSION=4.2.1
 MPC_VERSION=1.3.1
 NEWLIB_VERSION=4.3.0.20230120
 
-CFLAGS_FOR_TARGET="-mc68000 -O2 -fomit-frame-pointer"
+CFLAGS_FOR_TARGET="-mc68000 -O2 -fomit-frame-pointer -fno-exceptions"
 
 echo ""
 echo "============================================================"
@@ -177,6 +177,4 @@ echo ""
 
 cp ${PREFIX}/lib/gcc/m68k-elf/*/*.a ${PREFIX}/m68k-elf/lib/
 
-m68k-elf-gcc ${CFLAGS_FOR_TARGET} -c -o pixy-68000-0.o pixy-68000-0.c
-m68k-elf-ar r libpixy.a pixy-68000-0.o
-cp pixy-68000-0.ld libpixy.a ${PREFIX}/m68k-elf/lib/
+libpixy/build.sh
