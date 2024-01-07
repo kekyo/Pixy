@@ -18,7 +18,6 @@
 
 * We can use the gcc toolchain. In other words, we can write code in C language.
 
-
 ## PCB (Pixy-68000-0)
 
 ![PCB](Images/Pixy-68000-0-pcb.png)
