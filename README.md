@@ -8,7 +8,9 @@ My owned single board computer projects.
 
 ## Pixy-68000
 
-[Pixy-68000-0 project readme](Pixy-68000-0/README.md)
+[Pixy-68000-1 project readme](Pixy-68000/Pixy-68000-1/README.md)
+
+[Pixy-68000-0 project readme](Pixy-68000/Pixy-68000-0/README.md)
 
 * Motorola MC68SEC000-20 (Static low-powered m68k arch.)
 * ATMEL AVR ATMega-328PB
@@ -20,7 +22,7 @@ My owned single board computer projects.
 
 Assembled (Pixy-68000-0):
 
-![Pixy-68000-0](Pixy-68000-0/Images/Pixy-68000-0-photo.jpg)
+![Pixy-68000-0](Pixy-68000/Pixy-68000-0/Images/Pixy-68000-0-photo.jpg)
 
 ----
 
