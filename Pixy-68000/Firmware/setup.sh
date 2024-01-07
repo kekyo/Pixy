@@ -1,7 +1,7 @@
 #!/bin/sh
 
 PREFIX=~/.m68k-elf-gcc/
-PARALLEL=-j4
+PARALLEL=-j8
 
 # https://gcc.gnu.org/install/prerequisites.html
 
@@ -12,7 +12,7 @@ MPFR_VERSION=4.2.1
 MPC_VERSION=1.3.1
 NEWLIB_VERSION=4.3.0.20230120
 
-CFLAGS_FOR_TARGET="-mc68000 -O -fomit-frame-pointer"
+CFLAGS_FOR_TARGET="-mc68000 -O2 -fomit-frame-pointer -fno-exceptions"
 
 echo ""
 echo "============================================================"
@@ -89,24 +89,23 @@ cd binutils
     --disable-shared \
     --disable-multilib \
     --with-newlib \
-    --with-headers=${STAGE_DIR}/newlib-${NEWLIB_VERSION}/newlib/libc/include/
+    --with-headers=${STAGE_DIR}/newlib-${NEWLIB_VERSION}/newlib/libc/include/ \
+    --with-sysroot=${PREFIX}
 make ${PARALLEL}
 make install
 cd ..
 
 echo ""
 echo "============================================================"
-echo "Build gcc"
+echo "Build gcc [1]"
 echo ""
 
-mkdir gcc
-cd gcc
+mkdir gcc_1
+cd gcc_1
 ../gcc-${GCC_VERSION}/configure \
     --prefix=${PREFIX} \
     --target=m68k-elf \
-    --enable-languages=c,lto \
-    --enable-lto \
-    --enable-version-specific-runtime-libs \
+    --enable-languages=c \
     --enable-obsolete \
     --disable-libssp \
     --disable-shared \
@@ -114,7 +113,8 @@ cd gcc
     --disable-libstdcxx \
     --disable-bootstrap \
     --with-newlib \
-    --with-headers=${STAGE_DIR}/newlib-${NEWLIB_VERSION}/newlib/libc/include/
+    --with-headers=${STAGE_DIR}/newlib-${NEWLIB_VERSION}/newlib/libc/include/ \
+    --with-sysroot=${PREFIX}
 make ${PARALLEL}
 make install
 cd ..
@@ -136,7 +136,32 @@ cd newlib
     --enable-lite-exit \
     --disable-libssp \
     --disable-nls \
-    --disable-multilib
+    --disable-multilib \
+    --with-sysroot=${PREFIX}
+make ${PARALLEL}
+make install
+cd ..
+
+echo ""
+echo "============================================================"
+echo "Build gcc [2]"
+echo ""
+
+mkdir gcc_2
+cd gcc_2
+../gcc-${GCC_VERSION}/configure \
+    --prefix=${PREFIX} \
+    --target=m68k-elf \
+    --enable-languages=c,c++,lto \
+    --enable-lto \
+    --enable-obsolete \
+    --disable-libssp \
+    --disable-shared \
+    --disable-multilib \
+    --disable-bootstrap \
+    --with-newlib \
+    --with-headers=${STAGE_DIR}/newlib-${NEWLIB_VERSION}/newlib/libc/include/ \
+    --with-sysroot=${PREFIX}
 make ${PARALLEL}
 make install
 cd ..
@@ -150,5 +175,6 @@ echo "============================================================"
 echo "Finalize"
 echo ""
 
-m68k-elf-as -o pixy-68000-0.o pixy-68000-0.S
-cp pixy-68000-0.* ${PREFIX}/m68k-elf/lib/
+cp ${PREFIX}/lib/gcc/m68k-elf/*/*.a ${PREFIX}/m68k-elf/lib/
+
+libpixy/build.sh

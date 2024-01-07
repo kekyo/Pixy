@@ -12,37 +12,37 @@ module Stepper(
 // Avoid STEP switch chattering.
 
 reg FILTER_STATE;
-reg [9:0] FILTER_COUNT;
+reg [11:0] FILTER_COUNT;
 wire FILTERED_STEP = FILTER_STATE;
 
-always @(posedge CPUCLK_IN, negedge RUN_IN) begin
+always @(posedge MCLK_IN, negedge RUN_IN) begin
 	if (~RUN_IN) begin
 		FILTER_STATE <= 1'b0;
-		FILTER_COUNT <= 10'd0;
+		FILTER_COUNT <= 12'd0;
 	end else begin
 		case (FILTER_STATE)
 			1'b0:begin
 				if (STEP_IN) begin
-					if (FILTER_COUNT == 10'd1023) begin
-						FILTER_COUNT <= 10'd0;
+					if (FILTER_COUNT == 12'd4095) begin
+						FILTER_COUNT <= 12'd0;
 						FILTER_STATE <= 2'b1;
 					end else begin
-						FILTER_COUNT <= FILTER_COUNT + 10'd1;
+						FILTER_COUNT <= FILTER_COUNT + 12'd1;
 					end
 				end else begin
-					FILTER_COUNT <= 10'd0;
+					FILTER_COUNT <= 12'd0;
 				end
 			end
 			1'b1:begin
 				if (~STEP_IN) begin
-					if (FILTER_COUNT == 10'd1023) begin
-						FILTER_COUNT <= 10'd0;
+					if (FILTER_COUNT == 12'd4095) begin
+						FILTER_COUNT <= 12'd0;
 						FILTER_STATE <= 1'b0;
 					end else begin
-						FILTER_COUNT <= FILTER_COUNT + 10'd1;
+						FILTER_COUNT <= FILTER_COUNT + 12'd1;
 					end
 				end else begin
-					FILTER_COUNT <= 10'd0;
+					FILTER_COUNT <= 12'd0;
 				end
 			end
 		endcase
