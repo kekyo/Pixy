@@ -20,6 +20,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
+#include <pixy-68000.h>
+
 
 #if !defined(LUA_PROGNAME)
 #define LUA_PROGNAME		"lua"
@@ -660,6 +662,9 @@ static int pmain (lua_State *L) {
 
 
 int main (int argc, char **argv) {
+#if defined(__PIXY_68000__)
+  setEcho(true);
+#endif
   int status, result;
   lua_State *L = luaL_newstate();  /* create state */
   if (L == NULL) {

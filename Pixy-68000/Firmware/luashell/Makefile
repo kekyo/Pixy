@@ -70,7 +70,7 @@ test:
 	./$(LUA_T) -v
 
 clean:
-	$(RM) $(ALL_T) $(ALL_O)
+	$(RM) $(ALL_T) $(ALL_O) lua.mot lua.hex lua.bin
 
 depend:
 	@$(CC) $(CFLAGS) -MM l*.c
@@ -144,11 +144,11 @@ SunOS solaris:
 	$(MAKE) $(ALL) SYSCFLAGS="-DLUA_USE_POSIX -DLUA_USE_DLOPEN -D_REENTRANT" SYSLIBS="-ldl"
 
 pixy-68000:
-	$(MAKE) $(LUA_A) CC="m68k-elf-gcc" CFLAGS="-mc68000 -O2 -DLUA_32BITS=1" AR="m68k-elf-ar rcu" RANLIB="m68k-elf-ranlib"
-	$(MAKE) lua.elf CC="m68k-elf-gcc" CFLAGS="-mc68000 -O2 -DLUA_32BITS=1" AR="m68k-elf-ar rcu" SYSLDFLAGS="-T pixy-68000-0.ld" LUA_T="lua.elf"
-	m68k-elf-objcopy -S -O binary lua.elf lua.bin
-	m68k-elf-objcopy -S -O srec lua.elf lua.mot
-	m68k-elf-objcopy -S -O ihex lua.elf lua.hex
+	$(MAKE) $(LUA_A) CC="m68k-elf-gcc" CFLAGS="-mc68000 -O2 -fomit-frame-pointer -DLUA_32BITS=1" AR="m68k-elf-ar rcu" RANLIB="m68k-elf-ranlib"
+	$(MAKE) $(LUA_T) CC="m68k-elf-gcc" CFLAGS="-mc68000 -O2 -fomit-frame-pointer -DLUA_32BITS=1 -D__PIXY_68000__" AR="m68k-elf-ar rcu" SYSLDFLAGS="-T pixy-68000-0.ld"
+	m68k-elf-objcopy -S -O binary $(LUA_T) lua.bin
+	m68k-elf-objcopy -S -O srec $(LUA_T) lua.mot
+	m68k-elf-objcopy -S -O ihex $(LUA_T) lua.hex
 
 # Targets that do not create files (not all makes understand .PHONY).
 .PHONY: all $(PLATS) help test clean default o a depend echo

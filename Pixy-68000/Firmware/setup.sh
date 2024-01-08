@@ -190,4 +190,6 @@ echo ""
 
 cd luashell
 make pixy-68000
+cp lua.h lualib.h lauxlib.h lua.hpp ${PREFIX}/m68k-elf/include
+cp liblua.a ${PREFIX}/m68k-elf/lib/
 cd ..
