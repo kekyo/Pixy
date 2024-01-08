@@ -195,7 +195,9 @@ static void timerHandler() {
 // Setup.
 void setup() {
   Serial.begin(BAUDRATE);
-  Serial.println("setup()");
+  Serial.println();
+  Serial.println("Pixy-68000 (c) Kouji Matsui (@kekyo@mastodon.cloud)");
+  Serial.println();
 
   SPI.begin();
 
