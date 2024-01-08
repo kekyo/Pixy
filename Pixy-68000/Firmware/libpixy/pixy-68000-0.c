@@ -15,23 +15,9 @@
 //    return -1;
 //}
 
-//int open(const char *name, int flags, int mode) {
-//    return -1;
-//}
-
 //int stat(const char *__restrict __path, struct stat *__restrict __sbuf) {
 //    __sbuf->st_mode = S_IFCHR;
 //    return 0;
-//}
-
-//clock_t times(struct tms *buf) {
-//    // TODO:
-//    return -1;
-//}
-
-//int unlink(const char *__path) {
-//    errno = ENOENT;
-//    return -1; 
 //}
 
 //int wait(int *status) {
