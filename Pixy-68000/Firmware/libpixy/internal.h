@@ -7,10 +7,11 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include <stdbool.h>
+#include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/time.h>
 #include <sys/times.h>
 #include <sys/types.h>
 #include <sys/stat.h>

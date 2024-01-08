@@ -27,6 +27,8 @@ uint8_t inbyte();
 bool canSend();
 void outbyte(uint8_t ch);
 
+void setEcho(bool echoBack);
+
 void print(const char *pStr);
 void println(const char *pStr);
 

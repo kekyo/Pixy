@@ -1,0 +1,7 @@
+*.o
+*.a
+*.elf
+*.mot
+*.hex
+*.bin
+lua
