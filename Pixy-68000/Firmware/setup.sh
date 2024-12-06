@@ -11,6 +11,7 @@ GMP_VERSION=6.3.0
 MPFR_VERSION=4.2.1
 MPC_VERSION=1.3.1
 NEWLIB_VERSION=4.3.0.20230120
+DUKTAPE_VERSION=2.7.0
 
 CFLAGS_FOR_TARGET="-mc68000 -O2 -fomit-frame-pointer -fno-exceptions"
 
@@ -36,6 +37,7 @@ if [ ! -d artifacts ] ; then
     wget https://www.mpfr.org/mpfr-${MPFR_VERSION}/mpfr-${MPFR_VERSION}.tar.xz
     wget https://ftp.gnu.org/gnu/mpc/mpc-${MPC_VERSION}.tar.gz
     wget ftp://sourceware.org/pub/newlib/newlib-${NEWLIB_VERSION}.tar.gz
+    wget https://github.com/svaarala/duktape/releases/download/v${DUKTAPE_VERSION}/duktape-${DUKTAPE_VERSION}.tar.xz
     chmod 444 *
     cd ..
 fi
@@ -193,3 +195,22 @@ make pixy-68000
 cp lua.h lualib.h lauxlib.h lua.hpp ${PREFIX}/m68k-elf/include
 cp liblua.a ${PREFIX}/m68k-elf/lib/
 cd ..
+
+#------------------------------------------------------
+
+echo ""
+echo "============================================================"
+echo "Building duktapeshell"
+echo ""
+
+cd duktapeshell
+
+rm -rf duktape-${DUKTAPE_VERSION}
+tar -xf ../artifacts/duktape-${DUKTAPE_VERSION}.tar.xz
+cp Makefile duktape-${DUKTAPE_VERSION}/
+
+cd duktape-${DUKTAPE_VERSION}/
+
+make
+
+cd ../..
