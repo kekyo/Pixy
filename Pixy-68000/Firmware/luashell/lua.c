@@ -662,9 +662,6 @@ static int pmain (lua_State *L) {
 
 
 int main (int argc, char **argv) {
-#if defined(__PIXY_68000__)
-  setEcho(true);
-#endif
   int status, result;
   lua_State *L = luaL_newstate();  /* create state */
   if (L == NULL) {

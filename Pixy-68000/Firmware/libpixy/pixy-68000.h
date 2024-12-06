@@ -27,7 +27,10 @@ uint8_t inbyte();
 bool canSend();
 void outbyte(uint8_t ch);
 
-void setEcho(bool echoBack);
+// TODO: Will improve into ioctl(TCGETS/TCSETS)
+void setStdInEchoBack(bool echoBack);
+void setStdInCookedMode(bool cookedMode);
+void setStdOutCookedMode(bool cookedMode);
 
 void print(const char *pStr);
 void println(const char *pStr);

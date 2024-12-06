@@ -1,7 +1,7 @@
 #!/bin/sh
 
 PREFIX=~/.m68k-elf-gcc/
-PARALLEL=-j8
+PARALLEL=-j
 
 # https://gcc.gnu.org/install/prerequisites.html
 

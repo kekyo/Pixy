@@ -1,6 +1,5 @@
 #include "internal.h"
 
 int isatty(int file) {
-    return 1;
+    return (file == 0 || file == 1 || file == 2);
 }
-

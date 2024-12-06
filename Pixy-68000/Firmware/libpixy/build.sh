@@ -15,6 +15,7 @@ rm -f libpixy.a *.o
 
 for src in *.c
 do
+    echo "cc ${src}"
     m68k-elf-gcc ${CFLAGS_FOR_TARGET} -c -o ${src}.o ${src}
 done
 
