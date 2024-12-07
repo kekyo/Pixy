@@ -207,7 +207,7 @@ cd duktapeshell
 
 rm -rf duktape-${DUKTAPE_VERSION}
 tar -xf ../artifacts/duktape-${DUKTAPE_VERSION}.tar.xz
-cp Makefile duktape-${DUKTAPE_VERSION}/
+cp Makefile duk.c duktape-${DUKTAPE_VERSION}/
 
 cd duktape-${DUKTAPE_VERSION}/
 
