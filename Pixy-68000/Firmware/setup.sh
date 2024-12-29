@@ -12,6 +12,7 @@ MPFR_VERSION=4.2.1
 MPC_VERSION=1.3.1
 NEWLIB_VERSION=4.3.0.20230120
 DUKTAPE_VERSION=2.7.0
+LINENOISE_VERSION=d895173d679be70bcd8b23041fff3e458e1a3506
 
 CFLAGS_FOR_TARGET="-mc68000 -O2 -fomit-frame-pointer -fno-exceptions"
 
@@ -38,7 +39,9 @@ if [ ! -d artifacts ] ; then
     wget https://ftp.gnu.org/gnu/mpc/mpc-${MPC_VERSION}.tar.gz
     wget ftp://sourceware.org/pub/newlib/newlib-${NEWLIB_VERSION}.tar.gz
     wget https://github.com/svaarala/duktape/releases/download/v${DUKTAPE_VERSION}/duktape-${DUKTAPE_VERSION}.tar.xz
+    wget https://github.com/antirez/linenoise/archive/${LINENOISE_VERSION}.zip
     chmod 444 *
+    mv ${LINENOISE_VERSION}.zip linenoise-${LINENOISE_VERSION}.zip
     cd ..
 fi
 
@@ -205,8 +208,10 @@ echo ""
 
 cd duktapeshell
 
-rm -rf duktape-${DUKTAPE_VERSION}
+rm -rf duktape-${DUKTAPE_VERSION} linenoise
 tar -xf ../artifacts/duktape-${DUKTAPE_VERSION}.tar.xz
+unzip ../artifacts/linenoise-${LINENOISE_VERSION}.zip
+mv linenoise-${LINENOISE_VERSION} linenoise
 cp Makefile duk.c duktape-${DUKTAPE_VERSION}/
 
 cd duktape-${DUKTAPE_VERSION}/
