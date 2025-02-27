@@ -61268,7 +61268,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "KiCad_Library:LCMXO2-FTG256"
+		(property "Footprint" "KiCad_Library:LCMXO2-FTG256_LandOut"
 			(at 228.092 179.324 0)
 			(effects
 				(font
@@ -65712,7 +65712,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "KiCad_Library:LCMXO2-FTG256"
+		(property "Footprint" "KiCad_Library:LCMXO2-FTG256_LandOut"
 			(at 176.022 179.324 0)
 			(effects
 				(font
@@ -67288,7 +67288,7 @@
 				)
 			)
 		)
-		(property "Footprint" "KiCad_Library:LCMXO2-FTG256"
+		(property "Footprint" "KiCad_Library:LCMXO2-FTG256_LandOut"
 			(at 489.712 448.564 0)
 			(effects
 				(font
@@ -70225,7 +70225,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "KiCad_Library:LCMXO2-FTG256"
+		(property "Footprint" "KiCad_Library:LCMXO2-FTG256_LandOut"
 			(at 123.952 179.324 0)
 			(effects
 				(font
@@ -73732,7 +73732,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "KiCad_Library:LCMXO2-FTG256"
+		(property "Footprint" "KiCad_Library:LCMXO2-FTG256_LandOut"
 			(at 280.162 237.744 0)
 			(effects
 				(font
@@ -74990,7 +74990,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "KiCad_Library:LCMXO2-FTG256"
+		(property "Footprint" "KiCad_Library:LCMXO2-FTG256_LandOut"
 			(at 280.162 297.434 0)
 			(effects
 				(font
@@ -79320,7 +79320,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "KiCad_Library:LCMXO2-FTG256"
+		(property "Footprint" "KiCad_Library:LCMXO2-FTG256_LandOut"
 			(at 280.162 179.324 0)
 			(effects
 				(font
