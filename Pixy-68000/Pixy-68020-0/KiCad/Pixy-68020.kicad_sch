@@ -16775,7 +16775,7 @@
 					)
 				)
 			)
-			(property "Footprint" "kekyo:SOT307-2_NXP-M"
+			(property "Footprint" "KiCad_Library:SOT307-2_NXP-M"
 				(at -0.254 -44.196 0)
 				(effects
 					(font
@@ -19074,7 +19074,7 @@
 					(justify right)
 				)
 			)
-			(property "Footprint" "kekyo:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+			(property "Footprint" "KiCad_Library:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
 				(at -0.254 -36.322 0)
 				(effects
 					(font
@@ -19773,7 +19773,7 @@
 					(justify right)
 				)
 			)
-			(property "Footprint" "kekyo:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+			(property "Footprint" "KiCad_Library:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
 				(at -0.254 -36.322 0)
 				(effects
 					(font
@@ -59895,7 +59895,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "KiCad_Library:LQFP-64_10x10mm_P0.5mm"
 			(at 115.57 304.8 0)
 			(effects
 				(font
@@ -62507,7 +62507,7 @@
 				)
 			)
 		)
-		(property "Footprint" "kekyo:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+		(property "Footprint" "KiCad_Library:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
 			(at 27.686 405.892 0)
 			(effects
 				(font
@@ -64067,7 +64067,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "TPSA106K010R0900:CAPMP3216X166"
+		(property "Footprint" "KiCad_Library:CAPMP3216X166"
 			(at 137.16 355.6 0)
 			(effects
 				(font
@@ -65018,7 +65018,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "KiCad_Library:DIP-8_W7.62mm"
 			(at 321.31 353.06 0)
 			(effects
 				(font
@@ -69951,7 +69951,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "TPSA106K010R0900:CAPMP3216X166"
+		(property "Footprint" "KiCad_Library:CAPMP3216X166"
 			(at 147.32 382.27 0)
 			(effects
 				(font
@@ -71139,7 +71139,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "BC848CDW1T1G:SOT65P210X110-6N"
+		(property "Footprint" "KiCad_Library:SOT65P210X110-6N"
 			(at 322.58 297.18 0)
 			(effects
 				(font
@@ -72738,7 +72738,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "KiCad_Library:CUI_RCJ-042"
 			(at 443.23 322.58 0)
 			(effects
 				(font
@@ -72872,7 +72872,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "KiCad_Library:CUI_RCJ-042"
 			(at 443.23 345.44 0)
 			(effects
 				(font
@@ -77263,7 +77263,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "BC848CDW1T1G:SOT65P210X110-6N"
+		(property "Footprint" "KiCad_Library:SOT65P210X110-6N"
 			(at 322.58 280.67 0)
 			(effects
 				(font
@@ -80509,7 +80509,7 @@
 				)
 			)
 		)
-		(property "Footprint" "kekyo:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+		(property "Footprint" "KiCad_Library:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
 			(at 27.686 290.322 0)
 			(effects
 				(font
@@ -82945,7 +82945,7 @@
 				)
 			)
 		)
-		(property "Footprint" "kekyo:SOT307-2_NXP-M"
+		(property "Footprint" "KiCad_Library:SOT307-2_NXP-M"
 			(at 383.286 108.966 0)
 			(effects
 				(font
@@ -83205,7 +83205,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "KiCad_Library:DIP-8_W7.62mm"
 			(at 400.05 345.44 0)
 			(effects
 				(font
@@ -83290,7 +83290,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "KiCad_Library:DIP-8_W7.62mm"
 			(at 400.05 322.58 0)
 			(effects
 				(font
